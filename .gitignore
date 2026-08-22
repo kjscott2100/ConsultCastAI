@@ -1,0 +1,20 @@
+# Local session storage (default CONSULTCASTAI_LOCAL_STORE=1 mode)
+sessions_local.json
+
+# Local dev server logs
+uvicorn_out.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor/OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Never commit real secrets if you ever add a .env file
+.env

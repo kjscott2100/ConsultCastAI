@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConsultCastAI — AI Curator LLC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #050611;
+    --bg-panel: #0a0c1c;
+    --bg-panel-2: #0f1228;
+    --bg-raised: #141838;
+    --blue: #5b7fff;
+    --blue-glow: #7c9bff;
+    --purple: #9b5cff;
+    --purple-glow: #b98bff;
+    --cyan: #4de8ff;
+    --text: #eef0ff;
+    --text-dim: #7c82ad;
+    --text-faint: #4c5178;
+    --good: #33e6a5;
+    --warn: #ffb84d;
+    --danger: #ff4f6d;
+    --border: rgba(140,155,255,0.14);
+    --border-bright: rgba(140,155,255,0.35);
+    --radius: 16px;
+    --font-display: 'Sora', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; font-family:var(--font-body);
+    background:
+      radial-gradient(1100px 620px at 12% -8%, rgba(91,127,255,0.18), transparent 60%),
+      radial-gradient(900px 700px at 108% 8%, rgba(155,92,255,0.15), transparent 55%),
+      radial-gradient(700px 500px at 50% 105%, rgba(77,232,255,0.06), transparent 60%),
+      var(--bg);
+    color:var(--text);
+  }
+  .wrap{max-width:1320px; margin:0 auto; padding:18px 18px 50px;}
+
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:16px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand img{height:38px; width:auto; display:block;}
+  .brand-text{font-family:var(--font-display); font-size:19px; font-weight:700; letter-spacing:0.2px;}
+  .brand-text .ai{background:linear-gradient(135deg, var(--blue-glow), var(--purple-glow)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+
+  .conn{display:flex; align-items:center; gap:8px;}
+  .badge{
+    font-family:var(--font-mono); font-size:10.5px; padding:5px 10px; border-radius:99px;
+    border:1px solid var(--border); color:var(--text-dim); letter-spacing:0.5px; text-transform:uppercase;
+    display:flex; align-items:center; gap:6px;
+  }
+  .badge::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--text-faint);}
+  .badge.ok{color:var(--good); border-color:rgba(51,230,165,0.35);}
+  .badge.ok::before{background:var(--good); box-shadow:0 0 8px var(--good);}
+  .adv-toggle{
+    font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); background:none; border:none;
+    cursor:pointer; letter-spacing:0.5px; text-decoration:underline; text-underline-offset:3px;
+  }
+  .adv-toggle:hover{color:var(--text-dim);}
+  .adv-panel{display:none; gap:8px; align-items:center;}
+  .adv-panel.open{display:flex;}
+  .adv-panel input{
+    background:var(--bg-panel); border:1px solid var(--border); color:var(--text);
+    padding:7px 10px; border-radius:8px; font-size:11.5px; font-family:var(--font-mono); width:170px;
+  }
+  .btn-sm{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:8px; cursor:pointer;
+  }
+  .btn-sm:hover{border-color:var(--border-bright); color:var(--text);}
+
+  .panel{
+    background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px; margin-bottom:0;
+  }
+  .eyebrow{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:2.5px; color:var(--purple-glow); margin:0 0 6px;}
+  h2{font-family:var(--font-display); font-size:17px; font-weight:600; margin:0 0 14px; letter-spacing:0.2px;}
+
+  select{
+    width:100%; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text);
+    padding:11px 13px; border-radius:10px; font-size:13.5px; font-family:var(--font-body);
+    cursor:pointer; appearance:none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237c82ad'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  select:focus{outline:none; border-color:var(--border-bright);}
+  select:disabled{opacity:0.4; cursor:not-allowed;}
+  .field-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint); margin-bottom:6px; display:block;}
+  .field{margin-bottom:14px;}
+
+  .btn{
+    background:linear-gradient(135deg, var(--blue), var(--purple));
+    border:none; color:#050611; font-weight:700; font-size:14px; font-family:var(--font-body);
+    padding:14px 22px; border-radius:11px; cursor:pointer;
+    box-shadow:0 0 26px rgba(120,110,255,0.35);
+  }
+  .btn:disabled{opacity:0.35; cursor:not-allowed; box-shadow:none;}
+  .btn.ghost{background:transparent; border:1px solid var(--border); color:var(--text); box-shadow:none;}
+  .btn.ghost:hover{border-color:var(--border-bright);}
+  .btn.block{width:100%;}
+
+  /* --- Persistent 3-column layout --- */
+  .session-grid{display:grid; grid-template-columns:230px minmax(0,1fr) 250px; gap:14px; align-items:start;}
+
+  .persona-panel{position:sticky; top:20px;}
+  .persona-photo{
+    width:100%; aspect-ratio:1/1; border-radius:14px; margin-bottom:14px;
+    background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
+    background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
+    display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:11px; text-align:center; padding:10px;
+  }
+  .persona-photo video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
+  .persona-photo img{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
+  .hud-corner{position:absolute; width:16px; height:16px; border-color:var(--cyan); opacity:0.55; pointer-events:none; z-index:2;}
+  .hud-corner.tl{top:8px; left:8px; border-top:2px solid; border-left:2px solid; border-radius:3px 0 0 0;}
+  .hud-corner.tr{top:8px; right:8px; border-top:2px solid; border-right:2px solid; border-radius:0 3px 0 0;}
+  .hud-corner.bl{bottom:8px; left:8px; border-bottom:2px solid; border-left:2px solid; border-radius:0 0 0 3px;}
+  .hud-corner.br{bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; border-radius:0 0 3px 0;}
+
+  .persona-name{font-family:var(--font-display); font-size:18px; font-weight:700; margin:0 0 2px;}
+  .persona-role{font-size:12px; color:var(--text-dim); line-height:1.4; margin:0 0 14px;}
+  .persona-scenario-tag{margin-bottom:12px;}
+  .tag{font-family:var(--font-mono); font-size:10px; padding:4px 9px; border-radius:99px; background:rgba(155,92,255,0.14); color:var(--purple-glow); border:1px solid rgba(155,92,255,0.3); white-space:nowrap;}
+  .persona-context{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border);}
+  .persona-context strong{color:var(--text); font-weight:600; display:block; margin-bottom:4px; font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1px;}
+
+  .center-panel{min-height:560px; display:flex; flex-direction:column;}
+  .center-empty{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13.5px; padding:60px 20px; line-height:1.6;}
+
+  .avatar-live-box{
+    width:100%; aspect-ratio:16/9; border-radius:14px; margin-bottom:14px;
+    background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
+    background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
+  }
+  .avatar-live-box video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
+  #chat{
+    margin-bottom:14px;
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+  }
+  .msg{max-width:82%; padding:11px 15px; border-radius:14px; font-size:14.5px; line-height:1.5;}
+  .msg.assistant{align-self:flex-start; background:var(--bg-panel-2); border:1px solid var(--border); border-bottom-left-radius:4px;}
+  .msg.user{align-self:flex-end; background:linear-gradient(135deg, rgba(91,127,255,0.32), rgba(155,92,255,0.32)); border-bottom-right-radius:4px;}
+  .msg .who{font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); margin-bottom:3px;}
+
+  .hints-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .hints-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint);}
+  .switch{position:relative; display:inline-block; width:34px; height:19px; flex:none;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch-track{position:absolute; inset:0; background:var(--bg-raised); border:1px solid var(--border); border-radius:99px; cursor:pointer; transition:0.2s;}
+  .switch-track::before{content:''; position:absolute; width:13px; height:13px; left:2px; top:2px; background:var(--text-dim); border-radius:50%; transition:0.2s;}
+  .switch input:checked + .switch-track{background:rgba(91,127,255,0.25); border-color:var(--blue-glow);}
+  .switch input:checked + .switch-track::before{transform:translateX(15px); background:var(--blue-glow); box-shadow:0 0 6px var(--blue-glow);}
+  .switch-row{display:flex; align-items:center; gap:8px;}
+  .switch-row span{font-size:11.5px; color:var(--text-dim);}
+
+  .hints-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; min-height:20px;}
+  .hint-chip{
+    font-size:12.5px; padding:9px 13px; border-radius:10px; cursor:pointer;
+    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text-dim);
+    line-height:1.3; max-width:360px; transition:0.15s;
+  }
+  .hint-chip:hover{border-color:var(--border-bright); color:var(--text); background:var(--bg-raised);}
+  .hints-empty{font-size:12px; color:var(--text-faint); font-style:italic;}
+
+  .controls-row{display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;}
+  .controls-row .field{margin-bottom:0; flex:0 0 150px;}
+  .browser-note{
+    font-size:11.5px; color:var(--warn); background:rgba(255,184,77,0.08);
+    border:1px solid rgba(255,184,77,0.3); border-radius:9px; padding:8px 11px;
+    margin-bottom:10px; line-height:1.4;
+  }
+  .browser-note strong{color:var(--text);}
+  .composer{display:flex; gap:8px;}
+  .composer input{
+    flex:1; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text);
+    padding:13px 15px; border-radius:11px; font-size:14px; font-family:var(--font-body);
+  }
+  .composer input:focus{outline:none; border-color:var(--border-bright);}
+  .mic-btn{
+    width:48px; height:48px; border-radius:50%; border:1px solid var(--border);
+    background:var(--bg-panel-2); color:var(--text); cursor:pointer; font-size:18px; flex:none;
+  }
+  .mic-btn.live{background:linear-gradient(135deg, var(--danger), var(--purple)); box-shadow:0 0 22px rgba(255,79,109,0.55); border:none;}
+  .mic-btn:disabled{opacity:0.3; cursor:not-allowed;}
+
+  .coach-panel{position:sticky; top:20px; padding:22px; max-height:calc(100vh - 40px); display:flex; flex-direction:column;}
+  .gauge-stack{display:flex; flex-direction:column; gap:12px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);}
+  .gauge-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px;}
+  .gauge-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim);}
+  .gauge-val{font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--text);}
+  .gauge-caption{font-size:10.5px; color:var(--text-faint); margin-bottom:7px; line-height:1.3;}
+  .gauge-track{height:6px; border-radius:99px; background:rgba(255,255,255,0.05); overflow:hidden;}
+  .gauge-fill{height:100%; border-radius:99px; transition:width 0.5s cubic-bezier(.4,0,.2,1);}
+  .gauge-fill.pressure{background:linear-gradient(90deg, var(--good), var(--warn), var(--danger));}
+  .gauge-fill.trust{background:linear-gradient(90deg, var(--text-faint), var(--blue), var(--good));}
+  .gauge-fill.specificity{background:linear-gradient(90deg, var(--text-faint), var(--purple), var(--cyan));}
+
+  .coach-feed-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint); margin-bottom:10px;}
+  .coach-feed{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:2px; min-height:80px;}
+  .coach-entry{border-radius:10px; padding:10px 12px; font-size:12.5px; line-height:1.4; border:1px solid var(--border); background:var(--bg-panel-2);}
+  .coach-entry .turn-n{font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); margin-bottom:3px; display:block;}
+  .coach-entry.good{border-color:rgba(51,230,165,0.35); background:rgba(51,230,165,0.05); color:var(--good);}
+  .coach-entry.warn{border-color:rgba(255,184,77,0.35); background:rgba(255,184,77,0.05); color:var(--warn);}
+  .coach-entry.danger{border-color:rgba(255,79,109,0.35); background:rgba(255,79,109,0.05); color:var(--danger);}
+  .coach-entry.neutral{color:var(--text-dim);}
+  .coach-entry:last-child{box-shadow:0 0 0 1px currentColor inset;}
+  .coach-entry:not(:last-child){opacity:0.6;}
+  .coach-empty{color:var(--text-faint); font-size:12px; font-style:italic;}
+
+  .end-row{margin-top:16px;}
+  .debrief-body{white-space:pre-wrap; font-size:14.5px; line-height:1.7; color:var(--text); font-family:var(--font-body);}
+
+  .hidden{display:none !important;}
+  footer{display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:32px;}
+  footer img{height:44px; width:auto; opacity:0.85;}
+  footer .fine{color:var(--text-faint); font-size:10.5px; font-family:var(--font-mono); letter-spacing:0.3px;}
+
+  /* --- Collapse to single column below 1500px --- */
+  /* Placed last on purpose: .persona-panel/.coach-panel's own
+     position:sticky base rules are declared after .session-grid up above,
+     so an earlier override here would lose on source order despite the
+     query matching. Same pattern as the phone block below. */
+  @media (max-width:1500px){
+    .session-grid{grid-template-columns:1fr;}
+    .persona-panel, .coach-panel{position:static;}
+  }
+
+  /* --- Phone / small tablet --- */
+  /* Placed last on purpose: equal-specificity #chat/.panel/etc. rules above
+     would otherwise win on source order regardless of this query matching. */
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 40px;}
+    .panel{padding:14px;}
+    header{gap:10px;}
+    .conn{flex-wrap:wrap; row-gap:8px;}
+    .adv-panel{flex-wrap:wrap; width:100%;}
+    .adv-panel input{width:100%;}
+    .controls-row{flex-direction:column; align-items:stretch;}
+    .controls-row .field{flex:none; width:100%;}
+    .composer{flex-wrap:wrap;}
+    .composer input{min-width:0;}
+    #chat{height:320px;}
+    .avatar-live-box{aspect-ratio:4/3;}
+    .brand-text{font-size:16px;}
+    h2{font-size:15px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <img src="assets/ccai-icon.png" alt="ConsultCastAI" />
+      <span class="brand-text">ConsultCast<span class="ai">AI</span></span>
+    </div>
+    <div class="conn">
+      <span class="badge" id="statusBadge">connecting</span>
+      <button class="adv-toggle" onclick="toggleAdv()">connection settings</button>
+      <div class="adv-panel" id="advPanel">
+        <input id="apiBase" placeholder="API base URL" value="http://localhost:8081" />
+        <input id="apiKey" placeholder="API key (blank for local dev)" type="password" />
+        <button class="btn-sm" onclick="saveConfig()">Reconnect</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="session-grid">
+
+    <!-- LEFT: persona + training selection, always visible -->
+    <div class="panel persona-panel">
+      <div class="persona-photo" id="personaPhoto">
+        <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+        <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+        <img id="personaPhotoImg" class="hidden" alt="" />
+        <span id="personaPhotoText">Select a persona below</span>
+      </div>
+
+      <div class="field">
+        <span class="field-label">Persona</span>
+        <select id="personaSelect" onchange="onPersonaChange()"><option>Loading…</option></select>
+      </div>
+      <div class="field">
+        <span class="field-label">What to work on</span>
+        <select id="scenarioSelect" onchange="onScenarioChange()" disabled><option>Pick a persona first</option></select>
+      </div>
+
+      <div id="personaDetails" class="hidden">
+        <div class="persona-scenario-tag"><span class="tag" id="pScenarioTag">—</span></div>
+        <div class="persona-context">
+          <strong>Background</strong>
+          <span id="pContext">—</span>
+        </div>
+        <div class="persona-context" style="border-bottom:none; margin-bottom:0;">
+          <strong>How they behave</strong>
+          <span id="pTraits">—</span>
+        </div>
+      </div>
+
+      <button class="btn block" id="startBtn" disabled onclick="startSession()" style="margin-top:16px;">Start practice session</button>
+      <button class="btn ghost block hidden" id="endBtn" onclick="endSession()" style="margin-top:8px;">End session &amp; get debrief</button>
+    </div>
+
+    <!-- CENTER: conversation -->
+    <div class="panel center-panel">
+      <div id="centerEmpty" class="center-empty">Pick a persona and what you want to work on in the left panel, then press Start.</div>
+
+      <div id="centerActive" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+        <p class="eyebrow" id="sessionEyebrow">Live session</p>
+        <h2 id="sessionHeader">Session</h2>
+
+        <div id="avatarLive" class="avatar-live-box hidden">
+          <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+          <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+        </div>
+
+        <div id="chat"></div>
+
+        <div class="hints-header">
+          <span class="hints-label">Suggested lines</span>
+          <label class="switch-row">
+            <span>Hints</span>
+            <span class="switch">
+              <input type="checkbox" id="hintsToggle" checked onchange="renderHints()" />
+              <span class="switch-track" onclick="document.getElementById('hintsToggle').click()"></span>
+            </span>
+          </label>
+        </div>
+        <div class="hints-row" id="hintsRow"></div>
+
+        <div class="controls-row">
+          <div class="field">
+            <span class="field-label">Output</span>
+            <select id="modeSelect" onchange="onModeChange()">
+              <option value="text">Text only</option>
+              <option value="voice" selected>Voice</option>
+              <option value="avatar">Live avatar</option>
+            </select>
+          </div>
+        </div>
+        <div class="browser-note hidden" id="browserNote">
+          Voice quality is noticeably better in <strong>Microsoft Edge</strong>, this browser doesn't have Edge's natural voices installed.
+        </div>
+        <div class="composer">
+          <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Speak your response">🎙</button>
+          <input id="msgInput" placeholder="Type your response, or use the mic..." onkeydown="if(event.key==='Enter')sendTurn()" />
+          <button class="btn" onclick="sendTurn()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: coaching -->
+    <div class="panel coach-panel">
+      <div class="gauge-stack">
+        <div class="gauge">
+          <div class="gauge-top"><span class="gauge-label">Pressure</span><span class="gauge-val" id="pVal">—</span></div>
+          <div class="gauge-caption">How hard they're pushing back. Lower is better.</div>
+          <div class="gauge-track"><div class="gauge-fill pressure" id="pFill" style="width:0%"></div></div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-top"><span class="gauge-label">Trust</span><span class="gauge-val" id="tVal">—</span></div>
+          <div class="gauge-caption">How much they're opening up. Higher is better.</div>
+          <div class="gauge-track"><div class="gauge-fill trust" id="tFill" style="width:0%"></div></div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-top"><span class="gauge-label">Specificity</span><span class="gauge-val" id="sVal">—</span></div>
+          <div class="gauge-caption">How concrete you're being. Higher is better.</div>
+          <div class="gauge-track"><div class="gauge-fill specificity" id="sFill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="coach-feed-label">Coaching feed</div>
+      <div class="coach-feed" id="coachFeed"><div class="coach-empty">Start a session to see live coaching here.</div></div>
+    </div>
+
+  </div>
+
+  <!-- DEBRIEF -->
+  <section id="debriefScreen" class="hidden" style="margin-top:20px;">
+    <div class="panel">
+      <p class="eyebrow">After-action review</p>
+      <h2>Debrief</h2>
+      <div class="debrief-body" id="debriefText"></div>
+      <div class="end-row">
+        <button class="btn" onclick="resetAll()">Practice another scenario</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <img src="assets/aic-logo.png" alt="AI Curator LLC" />
+    <span class="fine">CLAUDE FOR CONVERSATION · ANAM FOR THE LIVE AVATAR</span>
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+esm";
+
+let API_BASE = localStorage.getItem('consultcastai_base') || 'http://localhost:8081';
+let API_KEY = localStorage.getItem('consultcastai_key') || '';
+document.getElementById('apiBase').value = API_BASE;
+document.getElementById('apiKey').value = API_KEY;
+
+let personas = [];
+let currentPersona = null;
+let currentScenario = null;
+let sessionId = null;
+let recognizing = false;
+let recognizer = null;
+let outputMode = 'voice';      // 'text' | 'voice' | 'avatar' — defaults to voice
+
+// Static reference photos, generated per persona as they're created in
+// OpenArt/Anam Lab. Personas without an entry here fall back to an
+// initials badge rather than a broken image. If a mapped file is missing
+// on disk, the img's onerror handler falls back the same way.
+const PERSONA_PHOTOS = {
+  carla_diaz: 'assets/personas/carla_diaz.jpg',
+};
+
+function personaInitials(persona){
+  return persona.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function setPersonaPhoto(persona){
+  const img = document.getElementById('personaPhotoImg');
+  const text = document.getElementById('personaPhotoText');
+  const src = persona ? PERSONA_PHOTOS[persona.id] : null;
+  const fallbackText = persona ? personaInitials(persona) : 'Select a persona below';
+  if(src){
+    // If the mapped photo 404s, fall back to initials too, not just an
+    // empty/stale text node -- onerror only toggled visibility before.
+    img.onerror = () => {
+      img.classList.add('hidden');
+      text.textContent = fallbackText;
+      text.classList.remove('hidden');
+    };
+    img.src = src;
+    img.alt = persona.name;
+    img.classList.remove('hidden');
+    text.classList.add('hidden');
+  } else {
+    img.classList.add('hidden');
+    text.textContent = fallbackText;
+    text.classList.remove('hidden');
+  }
+}
+let turnCount = 0;
+let anamClient = null;
+let anamActive = false;
+let avatarStarting = false;
+
+// --- Voice, fixed per persona, no user-facing selector ---
+// Each entry can name an exact Edge-only "Online (Natural)" voice (chosen by
+// ear), plus a gender used as the fallback path on browsers that don't have
+// Edge's voices at all (Chrome, Firefox, etc). Without a gender-appropriate
+// fallback, those browsers would silently use whatever voice happens to
+// load first, which can land a male persona on a female voice or vice versa.
+const PERSONA_VOICES = {
+  carla_diaz:      { edge: 'Microsoft Clara Online (Natural) - English (Canada)', gender: 'female' },
+  harold_bennett:  { gender: 'male' },
+  priya_nair:      { gender: 'female' },
+  dr_owens:        { gender: 'female' },
+  tom_walsh:       { gender: 'male' },
+  monica_reyes:    { gender: 'female' },
+};
+
+// Preferred Edge natural voice per gender, used when a persona has no
+// specific edge voice assigned above.
+const EDGE_DEFAULT_BY_GENDER = {
+  female: 'Microsoft Ava Online (Natural) - English (United States)',
+  male: 'Microsoft Andrew Online (Natural) - English (United States)',
+};
+
+// Chrome/Firefox fallback: these ship a small built-in set, typically
+// "Google UK English Female/Male" (Chrome) or similar. Matched by name
+// pattern rather than an exact string so it still works if the exact
+// wording varies slightly by OS/browser version.
+function findFallbackVoice(gender){
+  const genderWord = gender === 'male' ? /\bmale\b/i : /\bfemale\b/i;
+  const candidates = availableVoices.filter(v => genderWord.test(v.name));
+  const google = candidates.find(v => /google/i.test(v.name));
+  return google || candidates[0] || availableVoices[0] || null;
+}
+
+let availableVoices = [];
+function loadVoices(){
+  availableVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+}
+if(window.speechSynthesis){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function resolveVoice(persona){
+  const entry = (persona && PERSONA_VOICES[persona.id]) || { gender: 'female' };
+  const gender = entry.gender || 'female';
+  const edgeName = entry.edge || EDGE_DEFAULT_BY_GENDER[gender];
+  const edgeMatch = availableVoices.find(v => v.name === edgeName);
+  return edgeMatch || findFallbackVoice(gender);
+}
+
+function speak(text){
+  if(!('speechSynthesis' in window)) return Promise.resolve();
+  window.speechSynthesis.cancel();
+  return new Promise((resolve) => {
+    const utter = new SpeechSynthesisUtterance(text);
+    const voice = resolveVoice(currentPersona);
+    if(voice) utter.voice = voice;
+    utter.rate = 1.0;
+    utter.onend = resolve;
+    utter.onerror = resolve; // still re-enable the mic even if playback fails
+    window.speechSynthesis.speak(utter);
+  });
+}
+
+// --- Connection ---
+window.toggleAdv = function(){ document.getElementById('advPanel').classList.toggle('open'); };
+
+window.saveConfig = function(){
+  API_BASE = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+  API_KEY = document.getElementById('apiKey').value.trim();
+  localStorage.setItem('consultcastai_base', API_BASE);
+  localStorage.setItem('consultcastai_key', API_KEY);
+  loadPersonas();
+};
+
+async function api(path, opts={}){
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if(API_KEY) headers['Authorization'] = 'Bearer ' + API_KEY;
+  const res = await fetch(API_BASE + path, { ...opts, headers });
+  if(!res.ok){
+    const body = await res.text().catch(()=> '');
+    throw new Error(`${res.status}: ${body}`);
+  }
+  return res.json();
+}
+
+async function loadPersonas(){
+  const badge = document.getElementById('statusBadge');
+  try{
+    personas = await api('/personas');
+    badge.textContent = 'connected';
+    badge.classList.add('ok');
+    populatePersonaSelect();
+  }catch(e){
+    badge.textContent = 'not connected';
+    badge.classList.remove('ok');
+    document.getElementById('advPanel').classList.add('open');
+    console.error(e);
+  }
+}
+
+function populatePersonaSelect(){
+  const select = document.getElementById('personaSelect');
+  select.innerHTML = '<option value="">Choose a persona…</option>' +
+    personas.map(p => `<option value="${p.id}">${p.name} — ${p.role}</option>`).join('');
+}
+
+window.onPersonaChange = function(){
+  const id = document.getElementById('personaSelect').value;
+  const scenarioSelect = document.getElementById('scenarioSelect');
+  const persona = personas.find(p => p.id === id);
+  setPersonaPhoto(persona || null);
+  if(!persona){
+    scenarioSelect.innerHTML = '<option>Pick a persona first</option>';
+    scenarioSelect.disabled = true;
+    updateStartBtn();
+    return;
+  }
+  scenarioSelect.disabled = false;
+  scenarioSelect.innerHTML = '<option value="">Choose what to work on…</option>' +
+    persona.scenarios.map(s => `<option value="${s.id}">${s.title} (${s.group_label})</option>`).join('');
+  updateStartBtn();
+};
+
+window.onScenarioChange = function(){ updateStartBtn(); };
+
+function updateStartBtn(){
+  const p = document.getElementById('personaSelect').value;
+  const s = document.getElementById('scenarioSelect').value;
+  document.getElementById('startBtn').disabled = !(p && s);
+}
+
+window.startSession = async function(){
+  try{
+    const personaId = document.getElementById('personaSelect').value;
+    const scenarioId = document.getElementById('scenarioSelect').value;
+    currentPersona = personas.find(p => p.id === personaId);
+    currentScenario = currentPersona.scenarios.find(s => s.id === scenarioId);
+
+    const session = await api('/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ persona_id: personaId, scenario_id: scenarioId, voice_tier: 'standard' }),
+    });
+    sessionId = session.id;
+    turnCount = 0;
+
+    document.getElementById('centerEmpty').classList.add('hidden');
+    document.getElementById('centerActive').classList.remove('hidden');
+    document.getElementById('startBtn').classList.add('hidden');
+    document.getElementById('endBtn').classList.remove('hidden');
+    document.getElementById('personaSelect').disabled = true;
+    document.getElementById('scenarioSelect').disabled = true;
+
+    document.getElementById('personaDetails').classList.remove('hidden');
+    document.getElementById('personaPhotoText').textContent = currentPersona.name;
+    setPersonaPhoto(currentPersona);
+    document.getElementById('pScenarioTag').textContent = currentScenario.group_label;
+    document.getElementById('pContext').textContent = currentPersona.context;
+    document.getElementById('pTraits').textContent = currentPersona.traits;
+
+    document.getElementById('sessionHeader').textContent = currentPersona.name;
+    document.getElementById('sessionEyebrow').textContent = currentScenario.title;
+    document.getElementById('chat').innerHTML = '';
+    appendMsg('assistant', currentPersona.name, session.conversation[0].content);
+    renderHints();
+
+    document.getElementById('coachFeed').innerHTML = '';
+    updateMeters(session.pressure, session.trust, session.specificity);
+    addCoachEntry('neutral', 'Session started. Coaching appears after your first response.');
+
+    // Default each new session to voice; avatar/text are opt-in per session.
+    document.getElementById('modeSelect').value = 'voice';
+    await onModeChange();
+
+    // Speak the opening line too, not just the reply to the first turn —
+    // 1.5s pause gives it a natural beat and, in avatar mode, a moment for
+    // the stream to actually be ready before it tries to talk.
+    speakPersonaLine(session.conversation[0].content, 1500);
+  }catch(e){
+    alert('Could not start session: ' + e.message);
+  }
+};
+
+function renderHints(){
+  const row = document.getElementById('hintsRow');
+  const on = document.getElementById('hintsToggle').checked;
+  row.innerHTML = '';
+  if(!on) return;
+  if(!currentScenario || !currentScenario.chips || !currentScenario.chips.length){
+    row.innerHTML = '<span class="hints-empty">No suggested lines for this one — you\'re on your own.</span>';
+    return;
+  }
+  currentScenario.chips.forEach(chip => {
+    const el = document.createElement('div');
+    el.className = 'hint-chip';
+    el.textContent = chip;
+    el.onclick = () => sendTurn(chip); // hints send immediately
+    row.appendChild(el);
+  });
+}
+window.renderHints = renderHints;
+
+// Edge's Microsoft "Online (Natural)" voices are Edge-exclusive; Chrome,
+// Firefox, and others fall back to noticeably worse default OS voices.
+// Detected once from the user agent, not foolproof but good enough to
+// surface a helpful note rather than silently sounding bad.
+const IS_EDGE = /Edg\//.test(navigator.userAgent);
+
+window.onModeChange = async function(){
+  outputMode = document.getElementById('modeSelect').value;
+  document.getElementById('browserNote').classList.toggle('hidden', IS_EDGE || outputMode !== 'voice');
+
+  if(outputMode === 'avatar'){
+    if(!currentPersona || !currentPersona.has_avatar){
+      alert("This persona doesn't have a live avatar configured yet. Falling back to voice.");
+      document.getElementById('modeSelect').value = 'voice';
+      outputMode = 'voice';
+      document.getElementById('browserNote').classList.toggle('hidden', IS_EDGE);
+      return;
+    }
+    await startAvatar();
+  } else {
+    stopAvatar();
+  }
+};
+
+// The live avatar video ONLY ever renders in the center #avatarLive box,
+// in all three output modes (text/voice/avatar). The left panel's
+// #personaPhoto is a static reference image, set once via setPersonaPhoto()
+// and never touched here — do not add video/stream logic to personaPhoto.
+async function startAvatar(){
+  if(avatarStarting) return;   // guard against double-invocation stacking sessions
+  avatarStarting = true;
+  try{
+    const res = await api('/avatar/session-token', {
+      method: 'POST',
+      body: JSON.stringify({ persona_id: currentPersona.id }),
+    });
+    const box = document.getElementById('avatarLive');
+    box.classList.remove('hidden');
+    let video = box.querySelector('video');
+    if(!video){
+      video = document.createElement('video');
+      video.id = 'avatarVideo';
+      video.autoplay = true; video.playsInline = true;
+      box.appendChild(video);
+    }
+    anamClient = createClient(res.session_token);
+    await anamClient.streamToVideoElement('avatarVideo');
+    anamActive = true;
+  }catch(e){
+    console.error('Avatar start failed:', e);
+    alert('Could not start the live avatar (it may already be busy from a previous session), falling back to voice.');
+    document.getElementById('modeSelect').value = 'voice';
+    outputMode = 'voice';
+  }finally{
+    avatarStarting = false;
+  }
+}
+
+function stopAvatar(){
+  if(anamClient && anamActive){
+    try{ anamClient.stopStreaming(); }catch(e){ console.warn(e); }
+  }
+  anamActive = false;
+  anamClient = null;
+  const box = document.getElementById('avatarLive');
+  const video = box.querySelector('video');
+  if(video) video.remove();
+  box.classList.add('hidden');
+}
+
+// Prevent orphaned Anam sessions: a page reload or tab close doesn't
+// otherwise call stopStreaming(), which can leave sessions counted as
+// "active" against the account's concurrency limit.
+window.addEventListener('beforeunload', () => { if(anamActive) stopAvatar(); });
+window.addEventListener('pagehide', () => { if(anamActive) stopAvatar(); });
+
+function currentPersonaId(){ return currentPersona ? currentPersona.id : null; }
+
+function appendMsg(role, who, text){
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `<div class="who">${escapeHtml(who)}</div>${escapeHtml(text)}`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateMeters(p, t, s){
+  document.getElementById('pVal').textContent = p;
+  document.getElementById('tVal').textContent = t;
+  document.getElementById('sVal').textContent = s;
+  document.getElementById('pFill').style.width = p + '%';
+  document.getElementById('tFill').style.width = t + '%';
+  document.getElementById('sFill').style.width = s + '%';
+}
+
+function addCoachEntry(kind, text){
+  const feed = document.getElementById('coachFeed');
+  const empty = feed.querySelector('.coach-empty');
+  if(empty) empty.remove();
+  const entry = document.createElement('div');
+  entry.className = 'coach-entry ' + kind;
+  turnCount += 1;
+  entry.innerHTML = `<span class="turn-n">TURN ${turnCount}</span>${escapeHtml(text)}`;
+  feed.appendChild(entry);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// Shared by the opening line and every subsequent turn. delayMs gives the
+// avatar/voice a beat before speaking, feels more natural than snapping to
+// speech the instant text appears, and gives an avatar stream a moment to
+// finish connecting right after a session starts.
+// The mic is disabled for the full duration (pause + speech) and always
+// re-enabled in the finally block, even if playback errors out, so it can
+// never get stuck off. This also prevents the mic picking up the persona's
+// own voice through the speakers while she's talking.
+async function speakPersonaLine(text, delayMs = 0){
+  setMicBusy(true);
+  try{
+    if(delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
+    if(outputMode === 'voice'){
+      await speak(text);
+    } else if(outputMode === 'avatar' && anamActive && anamClient){
+      try{ await anamClient.talk(text); }
+      catch(e){ console.error('Avatar talk failed, falling back to voice:', e); await speak(text); }
+    }
+  } finally {
+    setMicBusy(false);
+  }
+}
+
+window.sendTurn = async function(hintText){
+  const input = document.getElementById('msgInput');
+  const text = (typeof hintText === 'string') ? hintText : input.value.trim();
+  if(!text || !sessionId) return;
+  input.value = '';
+  appendMsg('user', 'You', text);
+  try{
+    const res = await api(`/sessions/${sessionId}/turn`, {
+      method: 'POST',
+      body: JSON.stringify({ message: text }),
+    });
+    appendMsg('assistant', currentPersona.name, res.persona_reply);
+    updateMeters(res.pressure, res.trust, res.specificity);
+    addCoachEntry(res.coaching_note_kind, res.coaching_note_text);
+    speakPersonaLine(res.persona_reply);
+  }catch(e){
+    alert('Turn failed: ' + e.message);
+  }
+};
+
+// Disables the mic button while Carla is speaking (pause + playback), so
+// there's no way to start listening while her own voice is coming out of
+// the speakers, and re-enables it the moment she's done.
+function setMicBusy(busy){
+  const btn = document.getElementById('micBtn');
+  btn.disabled = busy;
+  btn.title = busy ? "Wait for her to finish speaking" : "Speak your response";
+  if(busy && recognizing && recognizer){ recognizer.stop(); } // stop if it was somehow still listening
+}
+
+window.toggleMic = function(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){ alert('Speech recognition is not supported in this browser. Use Chrome or Edge, or type your response.'); return; }
+  const btn = document.getElementById('micBtn');
+  if(recognizing){ recognizer.stop(); return; }
+  recognizer = new SpeechRecognition();
+  recognizer.continuous = false;
+  recognizer.interimResults = false;
+  recognizer.lang = 'en-US';
+  recognizer.onstart = () => { recognizing = true; btn.classList.add('live'); };
+  recognizer.onend = () => { recognizing = false; btn.classList.remove('live'); };
+  recognizer.onresult = (e) => {
+    document.getElementById('msgInput').value = e.results[0][0].transcript;
+    document.getElementById('msgInput').focus();
+    // No auto-send: review/edit the transcript, then press Send yourself.
+  };
+  recognizer.start();
+};
+
+window.endSession = async function(){
+  if(!sessionId) return;
+  try{
+    const res = await api(`/sessions/${sessionId}/end`, { method: 'POST' });
+    stopAvatar();
+    document.getElementById('centerActive').classList.add('hidden');
+    document.getElementById('centerEmpty').classList.remove('hidden');
+    document.getElementById('debriefScreen').classList.remove('hidden');
+    document.getElementById('debriefText').textContent = res.debrief;
+    document.getElementById('debriefScreen').scrollIntoView({ behavior: 'smooth' });
+  }catch(e){
+    alert('Could not end session: ' + e.message);
+  }
+};
+
+window.resetAll = function(){
+  sessionId = null;
+  currentPersona = null;
+  currentScenario = null;
+  document.getElementById('debriefScreen').classList.add('hidden');
+  document.getElementById('personaSelect').disabled = false;
+  document.getElementById('personaSelect').value = '';
+  document.getElementById('scenarioSelect').innerHTML = '<option>Pick a persona first</option>';
+  document.getElementById('scenarioSelect').disabled = true;
+  document.getElementById('personaDetails').classList.add('hidden');
+  document.getElementById('personaPhotoText').textContent = 'Select a persona below';
+  setPersonaPhoto(null);
+  document.getElementById('startBtn').classList.remove('hidden');
+  document.getElementById('endBtn').classList.add('hidden');
+  setMicBusy(false); // safety: never leave the mic stuck disabled between sessions
+  updateStartBtn();
+};
+
+loadPersonas();
+</script>
+</body>
+</html>
