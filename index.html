@@ -145,13 +145,13 @@
   .video-call-row{display:flex; gap:14px; margin-bottom:14px;}
   .video-call-row .avatar-live-box, .video-call-row .self-view-box{flex:1; min-width:0; margin-bottom:0;}
   .avatar-live-box{
-    width:100%; aspect-ratio:4/3; border-radius:14px;
+    width:100%; aspect-ratio:4/5; border-radius:14px;
     background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
     background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
   }
   .avatar-live-box video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
   .self-view-box{
-    width:100%; aspect-ratio:4/3; border-radius:14px;
+    width:100%; aspect-ratio:4/5; border-radius:14px;
     background:var(--bg-panel-2); border:1px solid var(--border); position:relative; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
   }
@@ -171,9 +171,9 @@
     border-radius:0 8px 8px 0; padding:9px 13px; margin-bottom:14px;
   }
   #chat{
-    margin-bottom:14px;
+    margin-bottom:14px; flex:1; min-height:200px;
     background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px; height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+    padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
   }
   .msg{max-width:82%; padding:11px 15px; border-radius:14px; font-size:14.5px; line-height:1.5;}
   .msg.assistant{align-self:flex-start; background:var(--bg-panel-2); border:1px solid var(--border); border-bottom-left-radius:4px;}
@@ -301,7 +301,7 @@
     .controls-row .field{flex:none; width:100%;}
     .composer{flex-wrap:wrap;}
     .composer input{min-width:0;}
-    #chat{height:320px;}
+    #chat{min-height:160px;}
     .video-call-row{flex-direction:column;}
     .brand-text{font-size:16px;}
     h2{font-size:15px;}
