@@ -397,11 +397,6 @@
       <div id="centerEmpty" class="center-empty">Pick a persona and what you want to work on in the left panel, then press Start.</div>
 
       <div id="centerActive" class="hidden" style="display:flex; flex-direction:column; flex:1;">
-        <p class="eyebrow" id="sessionEyebrow">Live session</p>
-        <h2 id="sessionHeader">Session</h2>
-
-        <div class="briefing-box" id="briefingBox"></div>
-
         <div id="videoCallRow" class="video-call-row hidden">
           <div id="avatarLive" class="avatar-live-box">
             <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
@@ -814,9 +809,6 @@ window.startSession = async function(){
     document.getElementById('pContext').textContent = currentPersona.context;
     document.getElementById('pTraits').textContent = currentPersona.traits;
 
-    document.getElementById('sessionHeader').textContent = currentPersona.name;
-    document.getElementById('sessionEyebrow').textContent = currentScenario.title;
-    document.getElementById('briefingBox').textContent = currentScenario.briefing || '';
     document.getElementById('chat').innerHTML = '';
     // Outbound sessions start with an empty conversation on purpose (see
     // main.py's start_session()): the consultant placed the call, so they
