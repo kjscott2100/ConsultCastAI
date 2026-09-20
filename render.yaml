@@ -1,0 +1,50 @@
+# Render Blueprint for the ConsultCastAI backend (FastAPI). Deploy by
+# connecting this repo in the Render dashboard: New -> Blueprint.
+#
+# This only covers the API. The static frontend (index.html + assets/) is
+# not included here on purpose, it's a separate hosting decision (its own
+# Render Static Site, a subdomain on ai-curator.ai like ClientBriefAI got,
+# or just opened locally against this API for now) and shouldn't force
+# backend source into a public static-file path.
+#
+# Storage: local-JSON on a persistent Render Disk, not Firestore, consistent
+# with the rest of this deploy staying entirely on Render, no GCP involved.
+# Fine at solo-founder/small-cohort scale; if this ever needs multiple
+# instances or heavier concurrency, swap storage backends then, not before.
+services:
+  - type: web
+    name: consultcastai-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: consultcastai-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      # Secrets and per-deploy values: fill these in via the Render
+      # dashboard after the first deploy (sync: false means Render prompts
+      # for a value instead of expecting one here, and never commits it).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANAM_API_KEY
+        sync: false
+      - key: CONSULTCASTAI_API_KEYS  # "sk_...:scott,sk_...:jane"
+        sync: false
+      - key: CONSULTCASTAI_ADMIN_REPS  # optional, comma-separated rep_ids
+        sync: false
+      - key: CONSULTCASTAI_ALLOWED_ORIGINS  # e.g. "https://www.ai-curator.ai"
+        sync: false
+
+      # Fixed for this deploy shape (local-JSON storage on the disk above,
+      # real auth enforced, production CORS mode). Change here, not in the
+      # dashboard, so it stays in version control.
+      - key: CONSULTCASTAI_ENV
+        value: production
+      - key: CONSULTCASTAI_LOCAL_STORE
+        value: "1"
+      - key: CONSULTCASTAI_LOCAL_STORE_PATH
+        value: /data/sessions_local.json
+      - key: CONSULTCASTAI_DEV_AUTH_BYPASS
+        value: "0"  # the whole point of this deploy: local storage, real auth

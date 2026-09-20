@@ -10,8 +10,14 @@ for where this is right now. Instead:
   e.g. "sk_abc123:scott,sk_def456:jane".
 - The Authorization: Bearer <key> header is matched against that list.
 - If the env var is unset, auth FAILS CLOSED (500), never admits everyone.
-- A local-dev bypass activates only when local store mode is also on, so it
-  can never run against real data.
+- A local-dev bypass exists for zero-setup local testing. It is DELIBERATELY
+  independent of which storage backend is active (CONSULTCASTAI_DEV_AUTH_BYPASS,
+  see _dev_bypass_enabled below): storage backend and "should auth be
+  enforced" are separate questions. A deploy can use local-JSON storage
+  (e.g. on a Render disk, no cloud DB needed) while still requiring real
+  API keys, or use a real database while still bypassing auth for local
+  testing against it. Defaults to matching local-store mode when unset, so
+  the zero-setup local dev experience is unchanged unless you opt in.
 
 This is intentionally swappable: when ConsultCastAI has real customers with
 their own IdPs, replace verify_user's body with Firebase/Auth0/Okta token
@@ -28,6 +34,7 @@ import store
 
 _API_KEYS_ENV = "CONSULTCASTAI_API_KEYS"     # "key:rep_id,key:rep_id"
 _ADMIN_REPS_ENV = "CONSULTCASTAI_ADMIN_REPS"  # comma-separated rep_ids
+_DEV_AUTH_BYPASS_ENV = "CONSULTCASTAI_DEV_AUTH_BYPASS"  # "1"/"0", overrides the storage-based default
 
 
 @dataclass
@@ -54,17 +61,29 @@ def _admin_reps() -> set[str]:
     return {r.strip() for r in raw.split(",") if r.strip()}
 
 
+def _dev_bypass_enabled() -> bool:
+    """Explicit CONSULTCASTAI_DEV_AUTH_BYPASS wins if set ("1" or "0").
+    Otherwise falls back to matching local-store mode, preserving the
+    original zero-setup local dev behavior for anyone who's never heard of
+    this flag."""
+    raw = os.environ.get(_DEV_AUTH_BYPASS_ENV)
+    if raw is not None:
+        return raw == "1"
+    return store.using_local_store()
+
+
 def verify_user(authorization: str | None = Header(default=None)) -> AuthUser:
     """FastAPI dependency: returns the verified caller, or raises 401/500."""
-    if store.using_local_store():
+    if _dev_bypass_enabled():
         return AuthUser(rep_id="dev", email="dev@localhost", is_admin=True)
 
     keys = _key_map()
     if not keys:
         print(
             "[consultcastai] auth FAIL-CLOSED: CONSULTCASTAI_API_KEYS is unset and "
-            "the local-store bypass is off -> refusing with 500. For local "
-            "dev set CONSULTCASTAI_LOCAL_STORE=1; in production set the key map."
+            "the dev bypass is off -> refusing with 500. For local dev set "
+            "CONSULTCASTAI_LOCAL_STORE=1 (or CONSULTCASTAI_DEV_AUTH_BYPASS=1 "
+            "explicitly); for a real deploy set the key map."
         )
         raise HTTPException(status_code=500, detail="Access control is not configured")
 

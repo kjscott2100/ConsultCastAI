@@ -77,11 +77,30 @@ main site, domain squatting risk is low right now but not zero.
 
 | Layer | Local default | Production |
 |---|---|---|
-| Storage | JSON file (`CONSULTCASTAI_LOCAL_STORE=1`) | Firestore: set `CONSULTCASTAI_LOCAL_STORE=0` + `CONSULTCASTAI_FIRESTORE_PROJECT` |
-| Auth | Dev bypass | Set `CONSULTCASTAI_API_KEYS="key:rep_id,..."` (or swap `auth.py` for real SSO) |
+| Storage | JSON file (`CONSULTCASTAI_LOCAL_STORE=1`) | Either stay on local-JSON with a persistent disk (see Render below), or set `CONSULTCASTAI_LOCAL_STORE=0` + `CONSULTCASTAI_FIRESTORE_PROJECT` for Firestore if this ever needs multiple instances |
+| Auth | Dev bypass | Set `CONSULTCASTAI_API_KEYS="key:rep_id,..."`, and set `CONSULTCASTAI_DEV_AUTH_BYPASS=0` if still using local-JSON storage (the bypass otherwise defaults on whenever storage is local, see `auth.py`) |
 | CORS | Open to localhost | Set `CONSULTCASTAI_ENV=production` + `CONSULTCASTAI_ALLOWED_ORIGINS` |
-| Secrets | Env vars | Move `ANTHROPIC_API_KEY` / `ANAM_API_KEY` to a real secrets manager |
+| Secrets | Env vars | Move `ANTHROPIC_API_KEY` / `ANAM_API_KEY` to a real secrets manager, or at minimum set them as Render's (non-synced) environment variables, never commit them |
 | Avatar | Voice-only (browser TTS/STT) fallback works with zero Anam setup | Publish personas in Anam Lab, set `avatar_id`/`voice_id`/`avatar_model` per persona in `content.py` |
+
+## Deploying to Render
+
+`render.yaml` in the repo root is a Render Blueprint for the backend
+(`consultcastai-api`): Python web service, local-JSON storage on a small
+persistent disk (`/data`), real auth enforced
+(`CONSULTCASTAI_DEV_AUTH_BYPASS=0`). No GCP/Firestore involved, this stays
+entirely on Render.
+
+To deploy: in the Render dashboard, New -> Blueprint, connect this repo.
+Render will read `render.yaml` and prompt for the env vars marked
+`sync: false` (never committed): `ANTHROPIC_API_KEY`, `ANAM_API_KEY`,
+`CONSULTCASTAI_API_KEYS`, `CONSULTCASTAI_ADMIN_REPS` (optional), and
+`CONSULTCASTAI_ALLOWED_ORIGINS` once the frontend has a home.
+
+The static frontend (`index.html` + `assets/`) is not part of this
+Blueprint on purpose, hosting it is a separate decision, its own Render
+Static Site, a subdomain on ai-curator.ai (the pattern ClientBriefAI
+already uses), or just opened locally against the deployed API for now.
 
 ## Voice, current state
 
