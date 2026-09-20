@@ -800,6 +800,9 @@ window.startSession = async function(){
     document.getElementById('msgInput').placeholder = hasOpener
       ? 'Type your response, or use the mic...'
       : 'You called them — type your opening line, or use the mic...';
+    if(!hasOpener){
+      startListening(); // outbound: you speak first, nothing to wait on before it's your turn
+    }
 
     // Respect whatever output mode was already picked before Start was
     // pressed (defaults to Voice via the <select>'s own "selected" option
@@ -1013,6 +1016,7 @@ async function speakPersonaLine(text, delayMs = 0){
     }
   } finally {
     setMicBusy(false);
+    startListening(); // it's the consultant's turn again now that the persona's done talking
   }
 }
 
@@ -1041,6 +1045,7 @@ function setSendBusy(busy){
 }
 
 window.sendTurn = async function(hintText){
+  stopListening(); // cut off the mic the instant Send is pressed, whether or not it was still active
   const input = document.getElementById('msgInput');
   const text = (typeof hintText === 'string') ? hintText : input.value.trim();
   if(!text || !sessionId) return;
@@ -1092,11 +1097,17 @@ function setMicBusy(busy){
   if(busy && recognizing && recognizer){ recognizer.stop(); } // stop if it was somehow still listening
 }
 
-window.toggleMic = function(){
+// Turn-taking auto-mic: listens by default whenever it's the consultant's
+// turn (right after the persona finishes speaking, or immediately at
+// session start on an outbound call, since there you speak first), and
+// stops the instant Send is pressed. startListening()/stopListening() are
+// the programmatic halves of that; toggleMic() (the mic button's manual
+// click handler) just wraps them with the "not supported" alert.
+function startListening(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition){ alert('Speech recognition is not supported in this browser. Use Chrome or Edge, or type your response.'); return; }
+  if(!SpeechRecognition) return; // silent no-op for auto-start; toggleMic() alerts on a manual click instead
   const btn = document.getElementById('micBtn');
-  if(recognizing){ recognizer.stop(); return; }
+  if(recognizing || btn.disabled) return; // already listening, or not our turn (busy/no session)
   recognizer = new SpeechRecognition();
   recognizer.continuous = false;
   recognizer.interimResults = false;
@@ -1108,7 +1119,18 @@ window.toggleMic = function(){
     document.getElementById('msgInput').focus();
     // No auto-send: review/edit the transcript, then press Send yourself.
   };
-  recognizer.start();
+  try{ recognizer.start(); }catch(e){ console.warn('Mic auto-start failed:', e); }
+}
+
+function stopListening(){
+  if(recognizing && recognizer){ recognizer.stop(); }
+}
+
+window.toggleMic = function(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){ alert('Speech recognition is not supported in this browser. Use Chrome or Edge, or type your response.'); return; }
+  if(recognizing){ stopListening(); return; }
+  startListening();
 };
 
 window.endSession = async function(){
@@ -1121,6 +1143,7 @@ window.endSession = async function(){
   try{
     const res = await api(`/sessions/${sessionId}/end`, { method: 'POST' });
     stopAvatar();
+    stopListening();
     document.getElementById('centerActive').classList.add('hidden');
     document.getElementById('centerEmpty').classList.remove('hidden');
     document.getElementById('endBtn').classList.add('hidden'); // session is over, nothing left to end
@@ -1175,6 +1198,7 @@ window.resetAll = function(){
   document.getElementById('modeSelect').value = 'voice';
   outputMode = 'voice';
   document.getElementById('browserNote').classList.add('hidden');
+  stopListening(); // safety: don't leave the mic listening in the background after a session ends
   setMicBusy(false); // safety: never leave the mic stuck disabled between sessions
   setComposerEnabled(false); // called after setMicBusy so this wins: no session, composer off
   updateStartBtn();
