@@ -159,6 +159,16 @@
     width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;
     transform:scaleX(-1); /* mirrored, the way every real video call shows your own camera */
   }
+  /* Soft-focus skin smoothing: #selfViewVideoSmooth plays the exact same
+     stream as #selfViewVideo, blurred and layered on top at partial
+     opacity. No canvas processing, no face tracking, just two video
+     elements — same trick real soft-focus camera filters use. DOM order
+     (declared after selfViewVideo) puts it on top with no z-index needed. */
+  #selfViewVideoSmooth{
+    filter:blur(4px) saturate(1.05) brightness(1.03);
+    opacity:0.55;
+    pointer-events:none;
+  }
   .self-view-text{color:var(--text-faint); font-size:11.5px; text-align:center; padding:0 16px;}
   .self-view-label{
     position:absolute; bottom:8px; left:10px; z-index:1;
@@ -384,6 +394,7 @@
           </div>
           <div id="selfView" class="self-view-box">
             <video id="selfViewVideo" autoplay playsinline muted class="hidden"></video>
+            <video id="selfViewVideoSmooth" autoplay playsinline muted class="hidden"></video>
             <span class="self-view-text" id="selfViewText">Camera off</span>
             <span class="self-view-label hidden" id="selfViewLabel">You</span>
           </div>
@@ -924,17 +935,25 @@ function stopAvatar(){
 // analyzes this feed, it's never sent anywhere, it's a local preview only,
 // same as any video-call app shows your own camera back to you. Mirrored
 // (scaleX(-1) in CSS) for the same reason every video call app mirrors it.
+//
+// #selfViewVideoSmooth plays the exact same MediaStream as #selfViewVideo
+// for a soft-focus skin-smoothing look (see the CSS comment on it): two
+// video elements rendering one stream doesn't duplicate the camera
+// capture, so this is effectively free.
 let selfCameraStream = null;
 
 async function startSelfCamera(){
   if(selfCameraStream) return; // already running
   const video = document.getElementById('selfViewVideo');
+  const videoSmooth = document.getElementById('selfViewVideoSmooth');
   const text = document.getElementById('selfViewText');
   const label = document.getElementById('selfViewLabel');
   try{
     selfCameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     video.srcObject = selfCameraStream;
+    videoSmooth.srcObject = selfCameraStream;
     video.classList.remove('hidden');
+    videoSmooth.classList.remove('hidden');
     label.classList.remove('hidden');
     text.classList.add('hidden');
   }catch(e){
@@ -945,12 +964,15 @@ async function startSelfCamera(){
 
 function stopSelfCamera(){
   if(selfCameraStream){
-    selfCameraStream.getTracks().forEach(t => t.stop()); // release the camera, not just hide the tile
+    selfCameraStream.getTracks().forEach(t => t.stop()); // release the camera, not just hide the tile (covers both video elements, same stream)
     selfCameraStream = null;
   }
   const video = document.getElementById('selfViewVideo');
+  const videoSmooth = document.getElementById('selfViewVideoSmooth');
   video.srcObject = null;
+  videoSmooth.srcObject = null;
   video.classList.add('hidden');
+  videoSmooth.classList.add('hidden');
   document.getElementById('selfViewLabel').classList.add('hidden');
   const text = document.getElementById('selfViewText');
   text.textContent = 'Camera off';
