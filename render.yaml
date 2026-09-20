@@ -10,7 +10,7 @@ services:
   - type: web
     name: consultcastai-api
     runtime: python
-    plan: starter
+    plan: 0.5c-512mb  # "Starter" in the Render dashboard; the plan field wants this raw compute-spec id, not the display name
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     disk:
