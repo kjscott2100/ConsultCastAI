@@ -502,7 +502,7 @@
 </div>
 
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+esm";
+import { createClient, AnamEvent } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+esm";
 
 // ClientBriefAI is live at its own subdomain. This is the ONLY place that
 // needs to change if that ever moves — every mention of ClientBriefAI in
@@ -612,6 +612,7 @@ let turnCount = 0;
 let anamClient = null;
 let anamActive = false;
 let avatarStarting = false;
+let resolveAvatarSpeechEnd = null; // set by speakPersonaLine(), resolved by the MESSAGE_HISTORY_UPDATED listener in startAvatar()
 
 // --- Voice, fixed per persona, no user-facing selector ---
 // Each entry can name an exact Edge-only "Online (Natural)" voice (chosen by
@@ -873,6 +874,21 @@ async function startAvatar(){
       box.appendChild(video);
     }
     anamClient = createClient(res.session_token);
+    // Must be registered before streamToVideoElement() per Anam's docs.
+    // talk()'s own returned promise resolves once the request is accepted,
+    // NOT once the avatar has actually finished speaking out loud, awaiting
+    // it alone was re-enabling the mic mid-speech, which then picked up the
+    // avatar's own voice through the speakers. MESSAGE_HISTORY_UPDATED
+    // fires when a participant actually finishes speaking, so that's what
+    // resolveAvatarSpeechEnd (used in speakPersonaLine) waits on instead.
+    anamClient.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, (messages) => {
+      const last = messages[messages.length - 1];
+      if(last && last.role === 'persona' && resolveAvatarSpeechEnd){
+        const resolve = resolveAvatarSpeechEnd;
+        resolveAvatarSpeechEnd = null;
+        resolve();
+      }
+    });
     await anamClient.streamToVideoElement('avatarVideo');
     anamActive = true;
     startSelfCamera(); // purely cosmetic (see below), never blocks the avatar itself
@@ -892,6 +908,10 @@ function stopAvatar(){
   }
   anamActive = false;
   anamClient = null;
+  if(resolveAvatarSpeechEnd){
+    resolveAvatarSpeechEnd(); // don't leave speakPersonaLine() hanging if the avatar was stopped mid-speech
+    resolveAvatarSpeechEnd = null;
+  }
   const box = document.getElementById('avatarLive');
   const video = box.querySelector('video');
   if(video) video.remove();
@@ -1011,7 +1031,18 @@ async function speakPersonaLine(text, delayMs = 0){
     if(outputMode === 'voice'){
       await speak(text);
     } else if(outputMode === 'avatar' && anamActive && anamClient){
-      try{ await anamClient.talk(text); }
+      try{
+        // talk()'s own promise resolves once the request is accepted, not
+        // once the avatar has actually finished speaking out loud, so it
+        // alone isn't a safe signal to re-enable the mic on. Set up the
+        // real speech-end wait first (resolved by the MESSAGE_HISTORY_UPDATED
+        // listener in startAvatar()), then wait on it after talk() is
+        // accepted — stopAvatar() also resolves this directly so a session
+        // ending mid-speech can't leave this hanging forever.
+        const speechEnded = new Promise(resolve => { resolveAvatarSpeechEnd = resolve; });
+        await anamClient.talk(text);
+        await speechEnded;
+      }
       catch(e){ console.error('Avatar talk failed, falling back to voice:', e); await speak(text); }
     }
   } finally {
