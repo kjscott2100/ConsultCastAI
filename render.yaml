@@ -1,11 +1,6 @@
-# Render Blueprint for the ConsultCastAI backend (FastAPI). Deploy by
-# connecting this repo in the Render dashboard: New -> Blueprint.
-#
-# This only covers the API. The static frontend (index.html + assets/) is
-# not included here on purpose, it's a separate hosting decision (its own
-# Render Static Site, a subdomain on ai-curator.ai like ClientBriefAI got,
-# or just opened locally against this API for now) and shouldn't force
-# backend source into a public static-file path.
+# Render Blueprint for ConsultCastAI: both the FastAPI backend and the
+# static frontend, deployed together. Deploy by connecting this repo in
+# the Render dashboard: New -> Blueprint.
 #
 # Storage: local-JSON on a persistent Render Disk, not Firestore, consistent
 # with the rest of this deploy staying entirely on Render, no GCP involved.
@@ -34,7 +29,7 @@ services:
         sync: false
       - key: CONSULTCASTAI_ADMIN_REPS  # optional, comma-separated rep_ids
         sync: false
-      - key: CONSULTCASTAI_ALLOWED_ORIGINS  # e.g. "https://www.ai-curator.ai"
+      - key: CONSULTCASTAI_ALLOWED_ORIGINS  # the frontend's Render URL, e.g. "https://consultcastai-frontend.onrender.com"
         sync: false
 
       # Fixed for this deploy shape (local-JSON storage on the disk above,
@@ -48,3 +43,11 @@ services:
         value: /data/sessions_local.json
       - key: CONSULTCASTAI_DEV_AUTH_BYPASS
         value: "0"  # the whole point of this deploy: local storage, real auth
+
+  # Static frontend: only frontend/ is published (index.html + assets/),
+  # kept in its own directory specifically so this can't accidentally
+  # expose the backend's Python source alongside it.
+  - type: web
+    name: consultcastai-frontend
+    runtime: static
+    staticPublishPath: frontend

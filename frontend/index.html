@@ -510,7 +510,14 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+es
 const CLIENTBRIEFAI_URL = "https://clientbriefai.ai-curator.ai";
 document.getElementById('clientBriefAiLink').href = CLIENTBRIEFAI_URL;
 
-let API_BASE = localStorage.getItem('consultcastai_base') || 'http://localhost:8081';
+// Falls back to the deployed Render backend's default URL (from the
+// service name in render.yaml) whenever this isn't running on localhost,
+// so the deployed frontend works without manually configuring the
+// connection panel first. If Render assigned a different URL (e.g. the
+// name was taken and got a suffix), the panel below still overrides this,
+// saved to localStorage, so it's a one-time fix per browser.
+const _IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
+let API_BASE = localStorage.getItem('consultcastai_base') || (_IS_LOCAL ? 'http://localhost:8081' : 'https://consultcastai-api.onrender.com');
 let API_KEY = localStorage.getItem('consultcastai_key') || '';
 document.getElementById('apiBase').value = API_BASE;
 document.getElementById('apiKey').value = API_KEY;
