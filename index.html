@@ -234,7 +234,6 @@
   .gauge-fill.pressure{background:linear-gradient(90deg, var(--good), var(--warn), var(--danger));}
   .gauge-fill.trust{background:linear-gradient(90deg, var(--text-faint), var(--blue), var(--good));}
   .gauge-fill.specificity{background:linear-gradient(90deg, var(--text-faint), var(--purple), var(--cyan));}
-  .session-timer{margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
   .session-timer .gauge-fill{transition:width 1s linear, background-color 0.4s ease;}
 
   .coach-feed-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint); margin-bottom:10px;}
@@ -439,14 +438,13 @@
           <div class="gauge-caption">How concrete you're being. Higher is better.</div>
           <div class="gauge-track"><div class="gauge-fill specificity" id="sFill" style="width:0%"></div></div>
         </div>
+        <div class="gauge session-timer">
+          <div class="gauge-top"><span class="gauge-label">Session Timer</span><span class="gauge-val" id="timeVal">0:00</span></div>
+          <div class="gauge-track"><div class="gauge-fill" id="timeFill" style="width:0%"></div></div>
+        </div>
       </div>
       <div class="coach-feed-label">Coaching feed</div>
       <div class="coach-feed" id="coachFeed"><div class="coach-empty">Start a session to see live coaching here.</div></div>
-
-      <div class="session-timer">
-        <div class="gauge-top"><span class="gauge-label">Session Timer</span><span class="gauge-val" id="timeVal">0:00</span></div>
-        <div class="gauge-track"><div class="gauge-fill" id="timeFill" style="width:0%"></div></div>
-      </div>
     </div>
 
   </div>
