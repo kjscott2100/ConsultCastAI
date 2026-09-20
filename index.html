@@ -106,11 +106,20 @@
   .btn.block{width:100%;}
 
   /* --- Persistent 3-column layout --- */
-  .session-grid{display:grid; grid-template-columns:230px minmax(0,1fr) 250px; gap:14px; align-items:start;}
+  /* Side columns compress toward their floor (190px/210px) and the center
+     column toward its floor (280px) as the viewport narrows, so the three
+     panels shrink together instead of jumping straight to a stacked single
+     column -- full stacking only kicks in once they can no longer fit,
+     see the max-width:900px query below. */
+  .session-grid{
+    display:grid;
+    grid-template-columns: minmax(190px, 230px) minmax(280px, 1fr) minmax(210px, 250px);
+    gap:14px; align-items:stretch;
+  }
 
   .persona-panel{position:sticky; top:20px;}
   .persona-photo{
-    width:100%; aspect-ratio:1/1; border-radius:14px; margin-bottom:14px;
+    width:100%; max-width:280px; aspect-ratio:1/1; border-radius:14px; margin:0 auto 14px;
     background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
     background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
     display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:11px; text-align:center; padding:10px;
@@ -139,6 +148,11 @@
     background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
   }
   .avatar-live-box video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
+  .briefing-box{
+    font-size:12.5px; color:var(--text-dim); line-height:1.5; font-style:italic;
+    background:var(--bg-panel-2); border-left:2px solid var(--purple-glow);
+    border-radius:0 8px 8px 0; padding:9px 13px; margin-bottom:14px;
+  }
   #chat{
     margin-bottom:14px;
     background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -148,6 +162,19 @@
   .msg.assistant{align-self:flex-start; background:var(--bg-panel-2); border:1px solid var(--border); border-bottom-left-radius:4px;}
   .msg.user{align-self:flex-end; background:linear-gradient(135deg, rgba(91,127,255,0.32), rgba(155,92,255,0.32)); border-bottom-right-radius:4px;}
   .msg .who{font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); margin-bottom:3px;}
+  .typing-dots{display:inline-flex; gap:4px; align-items:center; height:14px;}
+  .typing-dots span{
+    width:6px; height:6px; border-radius:50%; background:var(--text-dim);
+    animation:typing-bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2){animation-delay:0.15s;}
+  .typing-dots span:nth-child(3){animation-delay:0.3s;}
+  @keyframes typing-bounce{
+    0%, 60%, 100%{transform:translateY(0); opacity:0.4;}
+    30%{transform:translateY(-4px); opacity:1;}
+  }
+  input:disabled, .btn:disabled{opacity:0.5;}
+  .loading-note{display:flex; align-items:center; gap:9px; color:var(--text-dim); font-size:13.5px; font-style:italic;}
 
   .hints-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
   .hints-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint);}
@@ -168,6 +195,12 @@
   }
   .hint-chip:hover{border-color:var(--border-bright); color:var(--text); background:var(--bg-raised);}
   .hints-empty{font-size:12px; color:var(--text-faint); font-style:italic;}
+  .clientbriefai-note{
+    font-size:12px; color:var(--text-dim); background:var(--bg-panel-2);
+    border:1px solid var(--border); border-radius:10px; padding:10px 13px; margin-bottom:16px;
+  }
+  .clientbriefai-note a{color:var(--blue-glow); font-weight:600; text-decoration:none;}
+  .clientbriefai-note a:hover{text-decoration:underline;}
 
   .controls-row{display:flex; gap:10px; margin-bottom:10px; align-items:flex-end;}
   .controls-row .field{margin-bottom:0; flex:0 0 150px;}
@@ -201,17 +234,36 @@
   .gauge-fill.pressure{background:linear-gradient(90deg, var(--good), var(--warn), var(--danger));}
   .gauge-fill.trust{background:linear-gradient(90deg, var(--text-faint), var(--blue), var(--good));}
   .gauge-fill.specificity{background:linear-gradient(90deg, var(--text-faint), var(--purple), var(--cyan));}
+  .session-timer{margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
+  .session-timer .gauge-fill{transition:width 1s linear, background-color 0.4s ease;}
 
   .coach-feed-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint); margin-bottom:10px;}
-  .coach-feed{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:2px; min-height:80px;}
-  .coach-entry{border-radius:10px; padding:10px 12px; font-size:12.5px; line-height:1.4; border:1px solid var(--border); background:var(--bg-panel-2);}
-  .coach-entry .turn-n{font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); margin-bottom:3px; display:block;}
-  .coach-entry.good{border-color:rgba(51,230,165,0.35); background:rgba(51,230,165,0.05); color:var(--good);}
-  .coach-entry.warn{border-color:rgba(255,184,77,0.35); background:rgba(255,184,77,0.05); color:var(--warn);}
-  .coach-entry.danger{border-color:rgba(255,79,109,0.35); background:rgba(255,79,109,0.05); color:var(--danger);}
-  .coach-entry.neutral{color:var(--text-dim);}
-  .coach-entry:last-child{box-shadow:0 0 0 1px currentColor inset;}
-  .coach-entry:not(:last-child){opacity:0.6;}
+  .coach-feed{height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:2px;}
+  .coach-entry{
+    display:flex; gap:10px; border-radius:12px; padding:12px 13px;
+    border:1px solid var(--border); background:var(--bg-panel-2);
+  }
+  .coach-entry .icon-badge{
+    flex:none; width:28px; height:28px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    background:rgba(255,255,255,0.06); color:var(--text-dim);
+  }
+  .coach-entry .coach-body{flex:1; min-width:0;}
+  .coach-entry .turn-n{font-family:var(--font-mono); font-size:9px; color:var(--text-faint); margin-bottom:2px; display:block;}
+  .coach-entry .coach-title{font-size:12.5px; font-weight:600; margin-bottom:2px;}
+  .coach-entry .coach-desc{font-size:12px; color:var(--text-dim); line-height:1.4;}
+  .coach-entry.good{border-color:rgba(51,230,165,0.3);}
+  .coach-entry.good .icon-badge{background:rgba(51,230,165,0.16); color:var(--good);}
+  .coach-entry.good .coach-title{color:var(--good);}
+  .coach-entry.warn{border-color:rgba(255,184,77,0.3);}
+  .coach-entry.warn .icon-badge{background:rgba(255,184,77,0.16); color:var(--warn);}
+  .coach-entry.warn .coach-title{color:var(--warn);}
+  .coach-entry.danger{border-color:rgba(255,79,109,0.3);}
+  .coach-entry.danger .icon-badge{background:rgba(255,79,109,0.16); color:var(--danger);}
+  .coach-entry.danger .coach-title{color:var(--danger);}
+  .coach-entry.neutral .icon-badge{background:rgba(91,127,255,0.16); color:var(--blue-glow);}
+  .coach-entry.neutral .coach-title{color:var(--blue-glow);}
+  .coach-entry:not(:last-child){opacity:0.55;}
   .coach-empty{color:var(--text-faint); font-size:12px; font-style:italic;}
 
   .end-row{margin-top:16px;}
@@ -222,12 +274,18 @@
   footer img{height:44px; width:auto; opacity:0.85;}
   footer .fine{color:var(--text-faint); font-size:10.5px; font-family:var(--font-mono); letter-spacing:0.3px;}
 
-  /* --- Collapse to single column below 1500px --- */
+  /* --- Collapse to single column below 900px --- */
+  /* The three columns shrink together (see the minmax() floors on
+     .session-grid above) all the way down from 1500px; this only fires
+     once they've hit their floors and genuinely can't fit side by side
+     any more. Full width, no centering -- a narrow centered strip here
+     read as "everything's crammed into one column" even more than the
+     plain stack does. */
   /* Placed last on purpose: .persona-panel/.coach-panel's own
      position:sticky base rules are declared after .session-grid up above,
      so an earlier override here would lose on source order despite the
      query matching. Same pattern as the phone block below. */
-  @media (max-width:1500px){
+  @media (max-width:900px){
     .session-grid{grid-template-columns:1fr;}
     .persona-panel, .coach-panel{position:static;}
   }
@@ -263,6 +321,7 @@
     </div>
     <div class="conn">
       <span class="badge" id="statusBadge">connecting</span>
+      <button class="adv-toggle" onclick="openAssessment(null)">new AI assessment</button>
       <button class="adv-toggle" onclick="toggleAdv()">connection settings</button>
       <div class="adv-panel" id="advPanel">
         <input id="apiBase" placeholder="API base URL" value="http://localhost:8081" />
@@ -316,6 +375,8 @@
         <p class="eyebrow" id="sessionEyebrow">Live session</p>
         <h2 id="sessionHeader">Session</h2>
 
+        <div class="briefing-box" id="briefingBox"></div>
+
         <div id="avatarLive" class="avatar-live-box hidden">
           <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
           <div class="hud-corner bl"></div><div class="hud-corner br"></div>
@@ -334,25 +395,29 @@
           </label>
         </div>
         <div class="hints-row" id="hintsRow"></div>
+      </div>
 
-        <div class="controls-row">
-          <div class="field">
-            <span class="field-label">Output</span>
-            <select id="modeSelect" onchange="onModeChange()">
-              <option value="text">Text only</option>
-              <option value="voice" selected>Voice</option>
-              <option value="avatar">Live avatar</option>
-            </select>
-          </div>
+      <!-- Always visible, whether or not a session is running, so mode can
+           be picked before pressing Start (see the persona-panel's Start
+           button). The composer itself stays disabled until a session
+           actually exists via setComposerEnabled(). -->
+      <div class="controls-row">
+        <div class="field">
+          <span class="field-label">Output</span>
+          <select id="modeSelect" onchange="onModeChange()">
+            <option value="text">Text only</option>
+            <option value="voice" selected>Voice</option>
+            <option value="avatar">Live avatar</option>
+          </select>
         </div>
-        <div class="browser-note hidden" id="browserNote">
-          Voice quality is noticeably better in <strong>Microsoft Edge</strong>, this browser doesn't have Edge's natural voices installed.
-        </div>
-        <div class="composer">
-          <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Speak your response">🎙</button>
-          <input id="msgInput" placeholder="Type your response, or use the mic..." onkeydown="if(event.key==='Enter')sendTurn()" />
-          <button class="btn" onclick="sendTurn()">Send</button>
-        </div>
+      </div>
+      <div class="browser-note hidden" id="browserNote">
+        Voice quality is noticeably better in <strong>Microsoft Edge</strong>, this browser doesn't have Edge's natural voices installed.
+      </div>
+      <div class="composer">
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Start a session first" disabled>🎙</button>
+        <input id="msgInput" placeholder="Start a session to send a message..." onkeydown="if(event.key==='Enter')sendTurn()" disabled />
+        <button class="btn" id="sendBtn" onclick="sendTurn()" disabled>Send</button>
       </div>
     </div>
 
@@ -377,6 +442,11 @@
       </div>
       <div class="coach-feed-label">Coaching feed</div>
       <div class="coach-feed" id="coachFeed"><div class="coach-empty">Start a session to see live coaching here.</div></div>
+
+      <div class="session-timer">
+        <div class="gauge-top"><span class="gauge-label">Session Timer</span><span class="gauge-val" id="timeVal">0:00</span></div>
+        <div class="gauge-track"><div class="gauge-fill" id="timeFill" style="width:0%"></div></div>
+      </div>
     </div>
 
   </div>
@@ -387,8 +457,46 @@
       <p class="eyebrow">After-action review</p>
       <h2>Debrief</h2>
       <div class="debrief-body" id="debriefText"></div>
-      <div class="end-row">
+      <div class="end-row" style="display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn" onclick="resetAll()">Practice another scenario</button>
+        <button class="btn ghost" onclick="openAssessment(true)">Generate client-ready AI Assessment</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASSESSMENT: real client deliverable, from a practice session, manual notes, or both -->
+  <section id="assessmentScreen" class="hidden" style="margin-top:20px;">
+    <div class="panel">
+      <p class="eyebrow">Client deliverable</p>
+      <h2>AI Opportunity Assessment</h2>
+      <p style="font-size:12.5px; color:var(--text-dim); margin:-8px 0 16px;" id="assessmentSourceNote"></p>
+      <p class="clientbriefai-note">
+        Working from an actual recording or a full set of client notes, not just a quick summary?
+        <a href="#" target="_blank" rel="noopener" id="clientBriefAiLink">ClientBriefAI</a> is built for that.
+      </p>
+
+      <div class="field">
+        <span class="field-label">Client / business name (optional)</span>
+        <input id="assessmentClientName" placeholder="e.g. Diaz Family Kitchen" style="width:100%; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); padding:11px 13px; border-radius:10px; font-size:13.5px;" />
+      </div>
+      <div class="field">
+        <span class="field-label">Industry (optional — only used to suggest specific, vetted tool names)</span>
+        <input id="assessmentIndustry" placeholder="e.g. restaurant" style="width:100%; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); padding:11px 13px; border-radius:10px; font-size:13.5px;" />
+      </div>
+      <div class="field">
+        <span class="field-label">Real client context (optional — add anything not covered above, or use this alone with no session)</span>
+        <textarea id="assessmentContext" rows="5" placeholder="Notes from a real conversation, their actual numbers, specific pain points, anything relevant..." style="width:100%; background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text); padding:11px 13px; border-radius:10px; font-size:13.5px; font-family:inherit; resize:vertical;"></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+        <button class="btn" id="assessmentGenerateBtn" onclick="generateAssessment()">Generate assessment</button>
+        <button class="btn ghost" onclick="closeAssessment()">Close</button>
+      </div>
+
+      <div class="debrief-body hidden" id="assessmentResult"></div>
+      <div class="end-row hidden" id="assessmentActions" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn ghost" id="assessmentReadBtn" onclick="toggleReadAloud()">Read aloud</button>
+        <button class="btn ghost" onclick="downloadAssessmentDocx()">Download as Word doc</button>
       </div>
     </div>
   </section>
@@ -402,6 +510,13 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+esm";
 
+// TODO: swap this for the real page once ClientBriefAI is live on the site,
+// e.g. "https://www.ai-curator.ai/clientbriefai". This is the ONLY place
+// that needs to change — every mention of ClientBriefAI in the app reads
+// from here rather than hardcoding the URL in multiple spots.
+const CLIENTBRIEFAI_URL = "https://www.ai-curator.ai/clientbriefai";
+document.getElementById('clientBriefAiLink').href = CLIENTBRIEFAI_URL;
+
 let API_BASE = localStorage.getItem('consultcastai_base') || 'http://localhost:8081';
 let API_KEY = localStorage.getItem('consultcastai_key') || '';
 document.getElementById('apiBase').value = API_BASE;
@@ -414,6 +529,49 @@ let sessionId = null;
 let recognizing = false;
 let recognizer = null;
 let outputMode = 'voice';      // 'text' | 'voice' | 'avatar' — defaults to voice
+let sessionStartedAt = null;
+let timerInterval = null;
+
+// Discrete zones, not a smooth gradient: green through 9:59, yellow from
+// 10:00, red from 13:00. The bar visually maxes out at 15:00 and stays
+// full/red past that — it doesn't cap or end the session, just stops
+// climbing visually so a long session doesn't look "broken" at 100%+.
+const TIME_MAX_SEC = 15 * 60;
+const TIME_YELLOW_AT_SEC = 10 * 60;
+const TIME_RED_AT_SEC = 13 * 60;
+
+function startTimer(){
+  sessionStartedAt = Date.now();
+  stopTimer(); // clear any stray interval from a previous session
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+  updateTimerDisplay();
+}
+
+function stopTimer(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+}
+
+function resetTimerDisplay(){
+  document.getElementById('timeVal').textContent = '0:00';
+  const fill = document.getElementById('timeFill');
+  fill.style.width = '0%';
+  fill.style.background = 'var(--good)';
+}
+
+function updateTimerDisplay(){
+  if(!sessionStartedAt) return;
+  const elapsedSec = Math.floor((Date.now() - sessionStartedAt) / 1000);
+  const mins = Math.floor(elapsedSec / 60);
+  const secs = elapsedSec % 60;
+  document.getElementById('timeVal').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+
+  const fill = document.getElementById('timeFill');
+  const pct = Math.min(100, (elapsedSec / TIME_MAX_SEC) * 100);
+  fill.style.width = pct + '%';
+  fill.style.background = elapsedSec >= TIME_RED_AT_SEC ? 'var(--danger)'
+    : elapsedSec >= TIME_YELLOW_AT_SEC ? 'var(--warn)'
+    : 'var(--good)';
+}
 
 // Static reference photos, generated per persona as they're created in
 // OpenArt/Anam Lab. Personas without an entry here fall back to an
@@ -566,6 +724,10 @@ window.onPersonaChange = function(){
   const id = document.getElementById('personaSelect').value;
   const scenarioSelect = document.getElementById('scenarioSelect');
   const persona = personas.find(p => p.id === id);
+  // Set as soon as picked, not just at session start, so the Output
+  // selector (now usable before Start) can validate avatar availability
+  // and resolve the right voice ahead of time.
+  currentPersona = persona || null;
   setPersonaPhoto(persona || null);
   if(!persona){
     scenarioSelect.innerHTML = '<option>Pick a persona first</option>';
@@ -617,16 +779,21 @@ window.startSession = async function(){
 
     document.getElementById('sessionHeader').textContent = currentPersona.name;
     document.getElementById('sessionEyebrow').textContent = currentScenario.title;
+    document.getElementById('briefingBox').textContent = currentScenario.briefing || '';
     document.getElementById('chat').innerHTML = '';
     appendMsg('assistant', currentPersona.name, session.conversation[0].content);
+    currentHints = null; // fall back to the static opener chips for this fresh session
     renderHints();
 
     document.getElementById('coachFeed').innerHTML = '';
     updateMeters(session.pressure, session.trust, session.specificity);
     addCoachEntry('neutral', 'Session started. Coaching appears after your first response.');
+    startTimer();
+    setComposerEnabled(true);
 
-    // Default each new session to voice; avatar/text are opt-in per session.
-    document.getElementById('modeSelect').value = 'voice';
+    // Respect whatever output mode was already picked before Start was
+    // pressed (defaults to Voice via the <select>'s own "selected" option
+    // if nothing was touched) — no longer force-reset here.
     await onModeChange();
 
     // Speak the opening line too, not just the reply to the first turn —
@@ -638,16 +805,24 @@ window.startSession = async function(){
   }
 };
 
+// Static scenario.chips are only ever shown before the first exchange —
+// they're written for the opener specifically. After that, hints come from
+// the server fresh every turn (currentHints), reacting to what was just
+// actually said, since a fixed list would go stale fast.
+let currentHints = null;
+
 function renderHints(){
   const row = document.getElementById('hintsRow');
   const on = document.getElementById('hintsToggle').checked;
   row.innerHTML = '';
   if(!on) return;
-  if(!currentScenario || !currentScenario.chips || !currentScenario.chips.length){
-    row.innerHTML = '<span class="hints-empty">No suggested lines for this one — you\'re on your own.</span>';
+
+  const list = currentHints !== null ? currentHints : (currentScenario && currentScenario.chips) || [];
+  if(!list.length){
+    row.innerHTML = '<span class="hints-empty">No suggested lines this turn — you\'re on your own.</span>';
     return;
   }
-  currentScenario.chips.forEach(chip => {
+  list.forEach(chip => {
     const el = document.createElement('div');
     el.className = 'hint-chip';
     el.textContent = chip;
@@ -675,8 +850,11 @@ window.onModeChange = async function(){
       document.getElementById('browserNote').classList.toggle('hidden', IS_EDGE);
       return;
     }
-    await startAvatar();
-  } else {
+    // The selector is usable before Start now, so only actually mint an
+    // Anam session once a practice session exists — picking "Live avatar"
+    // ahead of time should just record the preference, not connect early.
+    if(sessionId) await startAvatar();
+  } else if(sessionId){
     stopAvatar();
   }
 };
@@ -757,14 +935,31 @@ function updateMeters(p, t, s){
   document.getElementById('sFill').style.width = s + '%';
 }
 
+// Short card titles per coaching kind, matched with the actual advice
+// text (from coaching.py) as the description underneath, card-style
+// rather than one plain sentence.
+const COACH_CARD = {
+  good:    { icon: '▲', title: 'Good Move' },
+  warn:    { icon: '★', title: 'Watch This' },
+  danger:  { icon: '✕', title: 'Off Track' },
+  neutral: { icon: 'i', title: 'Keep Going' },
+};
+
 function addCoachEntry(kind, text){
   const feed = document.getElementById('coachFeed');
   const empty = feed.querySelector('.coach-empty');
   if(empty) empty.remove();
+  const card = COACH_CARD[kind] || COACH_CARD.neutral;
   const entry = document.createElement('div');
   entry.className = 'coach-entry ' + kind;
   turnCount += 1;
-  entry.innerHTML = `<span class="turn-n">TURN ${turnCount}</span>${escapeHtml(text)}`;
+  entry.innerHTML = `
+    <div class="icon-badge">${card.icon}</div>
+    <div class="coach-body">
+      <span class="turn-n">TURN ${turnCount}</span>
+      <div class="coach-title">${card.title}</div>
+      <div class="coach-desc">${escapeHtml(text)}</div>
+    </div>`;
   feed.appendChild(entry);
   feed.scrollTop = feed.scrollHeight;
 }
@@ -792,29 +987,77 @@ async function speakPersonaLine(text, delayMs = 0){
   }
 }
 
+function showTypingIndicator(name){
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'msg assistant typing-indicator';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="who">${escapeHtml(name)}</div><span class="typing-dots"><span></span><span></span><span></span></span>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideTypingIndicator(){
+  const el = document.getElementById('typingIndicator');
+  if(el) el.remove();
+}
+
+function setSendBusy(busy){
+  document.getElementById('msgInput').disabled = busy;
+  const sendBtn = document.getElementById('sendBtn');
+  if(sendBtn) sendBtn.disabled = busy;
+  // Deliberately does NOT touch the mic button — that's controlled
+  // separately by setMicBusy() based on whether Carla is speaking, and
+  // touching it here could re-enable it mid-speech, undoing that logic.
+}
+
 window.sendTurn = async function(hintText){
   const input = document.getElementById('msgInput');
   const text = (typeof hintText === 'string') ? hintText : input.value.trim();
   if(!text || !sessionId) return;
   input.value = '';
   appendMsg('user', 'You', text);
+
+  setSendBusy(true);
+  showTypingIndicator(currentPersona.name);
   try{
     const res = await api(`/sessions/${sessionId}/turn`, {
       method: 'POST',
       body: JSON.stringify({ message: text }),
     });
+    hideTypingIndicator();
     appendMsg('assistant', currentPersona.name, res.persona_reply);
     updateMeters(res.pressure, res.trust, res.specificity);
     addCoachEntry(res.coaching_note_kind, res.coaching_note_text);
+    currentHints = res.hints || [];
+    renderHints();
     speakPersonaLine(res.persona_reply);
   }catch(e){
+    hideTypingIndicator();
     alert('Turn failed: ' + e.message);
+  }finally{
+    setSendBusy(false);
   }
 };
 
 // Disables the mic button while Carla is speaking (pause + playback), so
 // there's no way to start listening while her own voice is coming out of
 // the speakers, and re-enables it the moment she's done.
+// Output selector is always usable (even before Start), but the composer
+// itself only makes sense once a session exists to send into. Called true
+// on session start, false on end/reset — kept separate from setMicBusy(),
+// which layers on top of this during an active session to reflect whether
+// the persona is currently speaking.
+function setComposerEnabled(enabled){
+  const input = document.getElementById('msgInput');
+  const mic = document.getElementById('micBtn');
+  input.disabled = !enabled;
+  document.getElementById('sendBtn').disabled = !enabled;
+  mic.disabled = !enabled;
+  input.placeholder = enabled ? 'Type your response, or use the mic...' : 'Start a session to send a message...';
+  mic.title = enabled ? 'Speak your response' : 'Start a session first';
+}
+
 function setMicBusy(busy){
   const btn = document.getElementById('micBtn');
   btn.disabled = busy;
@@ -843,16 +1086,26 @@ window.toggleMic = function(){
 
 window.endSession = async function(){
   if(!sessionId) return;
+  const btn = document.getElementById('endBtn');
+  stopTimer();
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Generating debrief…';
   try{
     const res = await api(`/sessions/${sessionId}/end`, { method: 'POST' });
     stopAvatar();
     document.getElementById('centerActive').classList.add('hidden');
     document.getElementById('centerEmpty').classList.remove('hidden');
+    document.getElementById('endBtn').classList.add('hidden'); // session is over, nothing left to end
     document.getElementById('debriefScreen').classList.remove('hidden');
     document.getElementById('debriefText').textContent = res.debrief;
     document.getElementById('debriefScreen').scrollIntoView({ behavior: 'smooth' });
+    setComposerEnabled(false); // session is over, nothing left to send to
   }catch(e){
     alert('Could not end session: ' + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalLabel;
   }
 };
 
@@ -860,7 +1113,12 @@ window.resetAll = function(){
   sessionId = null;
   currentPersona = null;
   currentScenario = null;
+  sessionStartedAt = null;
+  stopTimer();
+  resetTimerDisplay();
   document.getElementById('debriefScreen').classList.add('hidden');
+  document.getElementById('assessmentScreen').classList.add('hidden');
+  stopReadAloud();
   document.getElementById('personaSelect').disabled = false;
   document.getElementById('personaSelect').value = '';
   document.getElementById('scenarioSelect').innerHTML = '<option>Pick a persona first</option>';
@@ -870,8 +1128,149 @@ window.resetAll = function(){
   setPersonaPhoto(null);
   document.getElementById('startBtn').classList.remove('hidden');
   document.getElementById('endBtn').classList.add('hidden');
+  document.getElementById('modeSelect').value = 'voice';
+  outputMode = 'voice';
+  document.getElementById('browserNote').classList.add('hidden');
   setMicBusy(false); // safety: never leave the mic stuck disabled between sessions
+  setComposerEnabled(false); // called after setMicBusy so this wins: no session, composer off
   updateStartBtn();
+};
+
+// --- AI Assessment: a real client deliverable, not a coaching artifact ---
+// Two entry points share this one flow: from a just-ended session's debrief
+// (assessmentSourceSessionId set), or standalone from the header (null,
+// manual notes only). Either way, /assessment accepts session_id and/or
+// manual_context, so this same generate function covers both.
+//
+// The debrief button passes literal `true` rather than `sessionId` directly:
+// inline onclick="..." attributes run in the page's global scope, not inside
+// this <script type="module">, so a bare reference to the module-scoped
+// `sessionId` variable there would throw ReferenceError. `true` is a safe
+// token to write inline; it just means "use whatever session is current".
+let assessmentSourceSessionId = null;
+
+window.openAssessment = function(fromSessionId){
+  assessmentSourceSessionId = fromSessionId === true ? sessionId : (fromSessionId || null);
+  document.getElementById('assessmentSourceNote').textContent = assessmentSourceSessionId
+    ? "Pulling context from the practice session you just finished. Add anything real below, or leave it blank."
+    : "No practice session attached — this generates purely from whatever real client context you add below.";
+  document.getElementById('assessmentContext').value = '';
+  document.getElementById('assessmentClientName').value = currentPersona ? currentPersona.name : '';
+  // Auto-fill from the attached session's persona — this is the whole fix:
+  // leaving it blank was silently telling the backend "no vetted tools for
+  // this industry," which is exactly why assessments came back generic.
+  document.getElementById('assessmentIndustry').value = (assessmentSourceSessionId && currentPersona) ? (currentPersona.industry || '') : '';
+  document.getElementById('assessmentResult').classList.add('hidden');
+  document.getElementById('assessmentResult').textContent = '';
+  document.getElementById('assessmentActions').classList.add('hidden');
+  document.getElementById('assessmentScreen').classList.remove('hidden');
+  document.getElementById('assessmentScreen').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.closeAssessment = function(){
+  stopReadAloud();
+  document.getElementById('assessmentScreen').classList.add('hidden');
+};
+
+window.generateAssessment = async function(){
+  const btn = document.getElementById('assessmentGenerateBtn');
+  const manualContext = document.getElementById('assessmentContext').value.trim();
+  const clientName = document.getElementById('assessmentClientName').value.trim();
+  const industry = document.getElementById('assessmentIndustry').value.trim();
+
+  if(!assessmentSourceSessionId && !manualContext){
+    alert('Add some real client context, or generate this from a finished practice session instead.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  stopReadAloud(); // a fresh result shouldn't leave a stale reading in progress
+
+  const result = document.getElementById('assessmentResult');
+  result.classList.remove('hidden');
+  result.innerHTML = '<span class="loading-note"><span class="typing-dots"><span></span><span></span><span></span></span> Generating your assessment, this is a longer document so it can take up to a minute…</span>';
+  document.getElementById('assessmentActions').classList.add('hidden');
+
+  try{
+    const res = await api('/assessment', {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: assessmentSourceSessionId,
+        manual_context: manualContext || null,
+        client_name: clientName || null,
+        industry: industry || null,
+      }),
+    });
+    result.textContent = res.assessment;
+    document.getElementById('assessmentActions').classList.remove('hidden');
+  }catch(e){
+    result.classList.add('hidden');
+    alert('Could not generate the assessment: ' + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Generate assessment';
+  }
+};
+
+// --- Read aloud: a plain, professional voice, not tied to any persona ---
+let readAloudActive = false;
+
+function stopReadAloud(){
+  if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  readAloudActive = false;
+  const btn = document.getElementById('assessmentReadBtn');
+  if(btn) btn.textContent = 'Read aloud';
+}
+
+window.toggleReadAloud = function(){
+  if(readAloudActive){ stopReadAloud(); return; }
+  const text = document.getElementById('assessmentResult').textContent.trim();
+  if(!text || !('speechSynthesis' in window)) return;
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  const voice = availableVoices.find(v => v.name === EDGE_DEFAULT_BY_GENDER.female) || findFallbackVoice('female');
+  if(voice) utter.voice = voice;
+  utter.rate = 1.0;
+  utter.onend = stopReadAloud;
+  utter.onerror = stopReadAloud;
+  window.speechSynthesis.speak(utter);
+
+  readAloudActive = true;
+  document.getElementById('assessmentReadBtn').textContent = 'Stop reading';
+};
+
+// --- Download as Word doc: formats the already-generated text, no re-call to Claude ---
+window.downloadAssessmentDocx = async function(){
+  const text = document.getElementById('assessmentResult').textContent.trim();
+  if(!text) return;
+  const clientName = document.getElementById('assessmentClientName').value.trim();
+
+  try{
+    const headers = { 'Content-Type': 'application/json' };
+    if(API_KEY) headers['Authorization'] = 'Bearer ' + API_KEY;
+    const res = await fetch(API_BASE + '/assessment/docx', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ assessment_text: text, client_name: clientName || null }),
+    });
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      throw new Error(`${res.status}: ${body}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (clientName ? clientName.replace(/[^A-Za-z0-9_-]+/g, '_') : 'AI_Assessment') + '_AI_Assessment.docx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('Could not download the Word document: ' + e.message);
+  }
 };
 
 loadPersonas();

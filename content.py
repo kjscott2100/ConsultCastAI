@@ -28,6 +28,11 @@ class Persona:
     avatar_id: str = ""
     voice_id: str = ""
     avatar_model: str = ""
+    # Matched (lowercased) against prompts.REFERENCE_TOOLS to auto-fill the
+    # Industry field when generating an AI Assessment from this persona's
+    # session, so the assessment can name specific vetted tools instead of
+    # describing capabilities only. Keep in sync with REFERENCE_TOOLS' keys.
+    industry: str = ""
 
 
 @dataclass
@@ -39,6 +44,7 @@ class Scenario:
     product: str
     opener: str
     chips: list[str] = field(default_factory=list)
+    briefing: str = ""  # one or two sentences of scene-setting shown before the opener
     active: bool = True
 
 
@@ -52,6 +58,13 @@ GROUPS = {
 }
 
 PERSONAS: dict[str, Persona] = {
+    # NOTE (avatar art): the custom Anam avatar image generated for Carla
+    # includes incidental, AI-generated text on the shirt reading "Cafe Sol,"
+    # which does not match "Diaz Family Kitchen" below. AI image generators
+    # frequently render garbled or invented text/logos on clothing; this is
+    # known, was reviewed, and was accepted as-is (not corrected) rather than
+    # regenerating the image. It has no effect on persona behavior, prompts,
+    # or coaching logic, cosmetic only.
     "carla_diaz": Persona(
         id="carla_diaz",
         name="Carla Diaz",
@@ -71,6 +84,7 @@ PERSONAS: dict[str, Persona] = {
         avatar_id="78cceaf3-fecc-49d6-b752-05f9e498a7bd",
         voice_id="c48c4dd9-5050-11f1-9076-5e955d484d11",
         avatar_model="cara-4",
+        industry="restaurant",
     ),
     "harold_bennett": Persona(
         id="harold_bennett",
@@ -87,6 +101,7 @@ PERSONAS: dict[str, Persona] = {
             "Cares about liability and client confidentiality above everything "
             "else. Will not be rushed and enjoys finding the flaw in an argument."
         ),
+        industry="legal",
     ),
     "priya_nair": Persona(
         id="priya_nair",
@@ -103,6 +118,7 @@ PERSONAS: dict[str, Persona] = {
             "anti-AI, just anti-being-sold-something-she-already-has. Responds "
             "well to being shown something specific she hasn't seen."
         ),
+        industry="ecommerce",
     ),
     "dr_owens": Persona(
         id="dr_owens",
@@ -121,6 +137,7 @@ PERSONAS: dict[str, Persona] = {
             "Will shut a conversation down fast if she senses risk without a "
             "clear compliance answer."
         ),
+        industry="dental",
     ),
     "tom_walsh": Persona(
         id="tom_walsh",
@@ -138,6 +155,7 @@ PERSONAS: dict[str, Persona] = {
             "Measures everything in hours saved or hours wasted. Suspicious of "
             "anything that sounds like it needs 'training' to use."
         ),
+        industry="roofing",
     ),
     "monica_reyes": Persona(
         id="monica_reyes",
@@ -154,6 +172,7 @@ PERSONAS: dict[str, Persona] = {
             "in principle but treats every claim as something that needs to "
             "survive a compliance review before she believes it."
         ),
+        industry="wealth_management",
     ),
 }
 
@@ -169,7 +188,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If we cut food waste 8 percent across 3 locations, what's that a "
          "month, roughly?",
          "This isn't a subscription you hope pays off, it's built around your "
-         "actual invoices from last quarter."]),
+         "actual invoices from last quarter."],
+        briefing=(
+            "Carla Diaz reached out after hearing about AI-assisted scheduling "
+            "and inventory tools for restaurants. You're two minutes into the "
+            "pitch meeting, and she's already pushing back."
+        ),
+    ),
     "carla_adoption": Scenario(
         "carla_adoption", "carla_diaz", "adoption", "My Staff Won't Use It",
         "AI-assisted scheduling & inventory ordering",
@@ -180,7 +205,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If it worked inside the group text you already use, would that "
          "change your answer?",
          "It sits behind the tool your team already opens 40 times a shift, "
-         "not a new app they have to remember."]),
+         "not a new app they have to remember."],
+        briefing=(
+            "Carla Diaz agreed to a follow-up meeting on AI-assisted scheduling "
+            "and inventory tools. You're partway through the pitch, and she's "
+            "just raised a concern about her kitchen staff."
+        ),
+    ),
 
     # --- Harold Bennett (law firm) ---
     "harold_accuracy": Scenario(
@@ -193,7 +224,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If every citation came with a verified source link before a human "
          "ever signed off, does that change the risk profile?",
          "This drafts a first pass under your review, the same as an "
-         "associate's work, it doesn't file anything unchecked."]),
+         "associate's work, it doesn't file anything unchecked."],
+        briefing=(
+            "Harold Bennett took the meeting after a colleague recommended "
+            "AI-assisted drafting and research tools for law firms. A few "
+            "minutes in, he's raising concerns about accuracy."
+        ),
+    ),
     "harold_privacy": Scenario(
         "harold_privacy", "harold_bennett", "data_privacy", "Client Confidentiality",
         "AI-assisted document drafting & research support",
@@ -204,7 +241,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If nothing you enter is used to train any model and it's under a "
          "signed data processing agreement, is that the standard you need?",
          "Zero retention, zero training on your data, and a DPA before "
-         "anything touches a client file. I'll get you that in writing."]),
+         "anything touches a client file. I'll get you that in writing."],
+        briefing=(
+            "You're midway through pitching AI-assisted drafting and research "
+            "tools to Harold Bennett. He's just stopped you to ask where "
+            "client data actually goes."
+        ),
+    ),
 
     # --- Priya Nair (e-commerce) ---
     "priya_already": Scenario(
@@ -217,7 +260,13 @@ SCENARIOS: dict[str, Scenario] = {
          "How much of your week goes to copy-pasting between ChatGPT, your "
          "store, and your inbox right now?",
          "You've got the raw tool. What you don't have is it wired into your "
-         "store and inbox so it runs without you copy-pasting."]),
+         "store and inbox so it runs without you copy-pasting."],
+        briefing=(
+            "Priya Nair took the call out of curiosity about AI-powered "
+            "customer ops tools. She's two minutes in and already comparing "
+            "it to what she's using for free."
+        ),
+    ),
     "priya_trust": Scenario(
         "priya_trust", "priya_nair", "trust_accuracy", "Prove It's Better",
         "AI-powered customer ops & content workflow",
@@ -228,7 +277,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If I showed you your actual return-email backlog cleared in one "
          "pass, would that count as concrete?",
          "Here's your last 20 support emails answered in your voice, drafted "
-         "in nine seconds. You approve or edit, nothing sends on its own."]),
+         "in nine seconds. You approve or edit, nothing sends on its own."],
+        briefing=(
+            "You're partway into pitching AI-powered customer ops tools to "
+            "Priya Nair. She's heard enough buzzwords for one call and wants "
+            "proof."
+        ),
+    ),
 
     # --- Dr. Owens (dental) ---
     "owens_privacy": Scenario(
@@ -241,7 +296,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If everything ran under a signed Business Associate Agreement with "
          "zero data retention, would that clear your first bar?",
          "Signed BAA, encrypted in transit and at rest, no data used to train "
-         "anything. That's the floor, not a feature."]),
+         "anything. That's the floor, not a feature."],
+        briefing=(
+            "Dr. Renee Owens agreed to hear about AI-assisted scheduling and "
+            "patient communication tools. Minutes in, she's already focused "
+            "on compliance."
+        ),
+    ),
     "owens_joblos": Scenario(
         "owens_joblos", "dr_owens", "job_loss", "My Staff Are Scared",
         "AI-assisted front-desk scheduling & patient communication",
@@ -253,7 +314,13 @@ SCENARIOS: dict[str, Scenario] = {
          "If this took the after-hours phone tag off their plate instead of "
          "replacing them, does that change how it lands with your team?",
          "This handles the 9pm reschedule call nobody wants to take. Your "
-         "front desk still runs the day, they just stop drowning in it."]),
+         "front desk still runs the day, they just stop drowning in it."],
+        briefing=(
+            "You're partway through pitching AI-assisted scheduling tools to "
+            "Dr. Renee Owens. She's just raised what's really on her mind, "
+            "her front desk staff's jobs."
+        ),
+    ),
 
     # --- Tom Walsh (roofing) ---
     "walsh_time": Scenario(
@@ -267,7 +334,13 @@ SCENARIOS: dict[str, Scenario] = {
          "photo your crew already takes, would ten minutes be worth it?",
          "No login, no dashboard to learn. Your crew keeps taking the same "
          "photos, the quote just shows up drafted instead of you writing it "
-         "at 9pm."]),
+         "at 9pm."],
+        briefing=(
+            "Tom Walsh squeezed in ten minutes between job sites to hear "
+            "about AI-assisted estimating tools. He's already eyeing the "
+            "clock."
+        ),
+    ),
     "walsh_cost": Scenario(
         "walsh_cost", "tom_walsh", "cost_roi", "What Does This Actually Save Me",
         "AI-assisted estimating & job-site photo documentation",
@@ -278,7 +351,13 @@ SCENARIOS: dict[str, Scenario] = {
          "At your billable rate, what's five hours a week of your own time "
          "worth over a year?",
          "This gets you those five hours back. That's the whole pitch, "
-         "everything else is detail."]),
+         "everything else is detail."],
+        briefing=(
+            "You're partway through pitching AI-assisted estimating tools to "
+            "Tom Walsh. He's cut to the only question he cares about, what "
+            "does this actually save him."
+        ),
+    ),
 
     # --- Monica Reyes (wealth management) ---
     "reyes_fiduciary": Scenario(
@@ -292,7 +371,13 @@ SCENARIOS: dict[str, Scenario] = {
          "generates advice a client sees directly, does that fit your "
          "standard?",
          "It's a research assistant, not an advisor. Every output is drafted "
-         "for your review, nothing reaches a client without you signing off."]),
+         "for your review, nothing reaches a client without you signing off."],
+        briefing=(
+            "Monica Reyes agreed to a meeting on AI-assisted research and "
+            "meeting prep tools. She's a few minutes in and already framing "
+            "everything around fiduciary duty."
+        ),
+    ),
     "reyes_privacy": Scenario(
         "reyes_privacy", "monica_reyes", "data_privacy", "Client Data Exposure",
         "AI-assisted client research & meeting prep",
@@ -305,7 +390,13 @@ SCENARIOS: dict[str, Scenario] = {
          "any model, would that meet what you'd need to disclose to clients?",
          "Zero retention, no training, and a data processing agreement your "
          "compliance team can actually review line by line before anything "
-         "goes live."]),
+         "goes live."],
+        briefing=(
+            "You're midway through pitching AI-assisted research tools to "
+            "Monica Reyes. She's just stopped to ask about client data "
+            "exposure."
+        ),
+    ),
 }
 
 

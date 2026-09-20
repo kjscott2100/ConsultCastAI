@@ -10,16 +10,19 @@ storage required by default, see README.md for the local -> production path.
 """
 
 import os
+import re
 import time
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 import auth
 import claude_client
 import anam_client
 import content
 import coaching
+import docx_builder
 import store
 from models import (
     SessionRecord,
@@ -30,8 +33,11 @@ from models import (
     EndSessionResponse,
     AvatarTokenRequest,
     AvatarTokenResponse,
+    AssessmentRequest,
+    AssessmentResponse,
+    AssessmentDocxRequest,
 )
-from prompts import build_system_prompt, build_debrief_prompt
+from prompts import build_system_prompt, build_debrief_prompt, build_hints_system_prompt, build_assessment_prompt
 
 app = FastAPI(title="ConsultCastAI Backend")
 
@@ -56,6 +62,11 @@ print(
     f"[consultcastai] CORS mode: {'production' if _IS_PROD else 'local dev'}; "
     f"allowed_origins={_ALLOWED_ORIGINS}; localhost_regex={'on' if _ALLOW_ORIGIN_REGEX else 'off'}"
 )
+
+# Bump this string any time prompts.py/docx_builder.py change and you need
+# to confirm a restart actually picked up the new files, rather than
+# guessing. Check the uvicorn startup log for this exact line.
+print("[consultcastai] BUILD MARKER: assessment-broader-landscape-v2 (no-markdown + docx numbering fix)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,11 +93,13 @@ def list_personas():
             "context": p.context,
             "traits": p.traits,
             "has_avatar": bool(p.avatar_id and p.voice_id),
+            "industry": p.industry,
             "scenarios": [
                 {
                     "id": s.id, "title": s.title,
                     "group": s.group, "group_label": content.GROUPS.get(s.group, s.group),
                     "product": s.product, "opener": s.opener, "chips": s.chips,
+                    "briefing": s.briefing,
                 }
                 for s in scenarios
             ],
@@ -151,6 +164,17 @@ def send_turn(session_id: str, req: TurnRequest, user: auth.AuthUser = Depends(a
     session.specificity = result.state.specificity
     store.save(session)
 
+    # Suggested lines are regenerated every turn from what was just actually
+    # said, not the same 3 static lines the whole conversation. A failure
+    # here (get_dynamic_hints already catches its own exceptions) just means
+    # no hints this turn, not a broken response.
+    transcript_lines = [
+        f"{'CONSULTANT' if t.role == 'user' else session.persona_name.upper()}: {t.content}"
+        for t in session.conversation
+    ]
+    hints_prompt = build_hints_system_prompt(persona, scenario)
+    hints = claude_client.get_dynamic_hints(hints_prompt, "\n".join(transcript_lines))
+
     return TurnResponse(
         persona_reply=reply,
         pressure=result.state.pressure,
@@ -158,6 +182,7 @@ def send_turn(session_id: str, req: TurnRequest, user: auth.AuthUser = Depends(a
         specificity=result.state.specificity,
         coaching_note_kind=result.note_kind,
         coaching_note_text=result.note_text,
+        hints=hints,
     )
 
 
@@ -212,6 +237,62 @@ def avatar_session_token(req: AvatarTokenRequest, user: auth.AuthUser = Depends(
         print(f"[consultcastai] anam session-token call failed: {type(exc).__name__}: {exc}")
         raise HTTPException(status_code=502, detail="Avatar session temporarily unavailable")
     return AvatarTokenResponse(session_token=token)
+
+
+@app.post("/assessment", response_model=AssessmentResponse)
+def generate_assessment(req: AssessmentRequest, user: auth.AuthUser = Depends(auth.verify_user)):
+    """Generates a real, client-facing AI Opportunity Assessment. Distinct
+    from the debrief: the debrief coaches the consultant, this is a
+    deliverable meant to actually go to the customer. Context can come from
+    a completed practice session's transcript, real notes typed in
+    directly, or both combined."""
+    context_parts: list[str] = []
+
+    if req.session_id:
+        session = store.get(req.session_id)
+        if not session:
+            raise HTTPException(404, "Session not found")
+        auth.require_owner(session.rep_id, user)
+        transcript_lines = [
+            f"{'CONSULTANT' if t.role == 'user' else session.persona_name.upper()}: {t.content}"
+            for t in session.conversation
+        ]
+        context_parts.append("Practice conversation transcript:\n" + "\n".join(transcript_lines))
+
+    if req.manual_context and req.manual_context.strip():
+        context_parts.append("Additional real client context, provided directly by the consultant:\n" + req.manual_context.strip())
+
+    if not context_parts:
+        raise HTTPException(400, "Provide a session_id, manual_context, or both")
+
+    prompt = build_assessment_prompt("\n\n".join(context_parts), req.client_name or "", req.industry or "")
+    try:
+        assessment = claude_client.get_assessment(prompt)
+    except Exception as exc:
+        print(f"[consultcastai] assessment generation failed: {type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=502, detail="Assessment generation temporarily unavailable")
+
+    return AssessmentResponse(assessment=assessment)
+
+
+@app.post("/assessment/docx")
+def assessment_docx(req: AssessmentDocxRequest, user: auth.AuthUser = Depends(auth.verify_user)):
+    """Formats an already-generated assessment into a downloadable Word
+    document. Takes the text the browser already has, doesn't call Claude
+    again — this is pure formatting, not generation."""
+    try:
+        buf = docx_builder.build_assessment_docx(req.assessment_text, req.client_name or "")
+    except Exception as exc:
+        print(f"[consultcastai] docx build failed: {type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not build the Word document")
+
+    safe_name = re.sub(r"[^A-Za-z0-9_-]+", "_", (req.client_name or "AI_Assessment")).strip("_") or "AI_Assessment"
+    filename = f"{safe_name}_AI_Assessment.docx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _persona_id_for(session: SessionRecord) -> str:
