@@ -145,13 +145,13 @@
   .video-call-row{display:flex; gap:14px; margin-bottom:14px;}
   .video-call-row .avatar-live-box, .video-call-row .self-view-box{flex:1; min-width:0; margin-bottom:0;}
   .avatar-live-box{
-    width:100%; aspect-ratio:16/9; border-radius:14px;
+    width:100%; aspect-ratio:4/3; border-radius:14px;
     background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
     background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
   }
   .avatar-live-box video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
   .self-view-box{
-    width:100%; aspect-ratio:16/9; border-radius:14px;
+    width:100%; aspect-ratio:4/3; border-radius:14px;
     background:var(--bg-panel-2); border:1px solid var(--border); position:relative; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
   }
@@ -193,25 +193,6 @@
   input:disabled, .btn:disabled{opacity:0.5;}
   .loading-note{display:flex; align-items:center; gap:9px; color:var(--text-dim); font-size:13.5px; font-style:italic;}
 
-  .hints-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
-  .hints-label{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-faint);}
-  .switch{position:relative; display:inline-block; width:34px; height:19px; flex:none;}
-  .switch input{opacity:0; width:0; height:0;}
-  .switch-track{position:absolute; inset:0; background:var(--bg-raised); border:1px solid var(--border); border-radius:99px; cursor:pointer; transition:0.2s;}
-  .switch-track::before{content:''; position:absolute; width:13px; height:13px; left:2px; top:2px; background:var(--text-dim); border-radius:50%; transition:0.2s;}
-  .switch input:checked + .switch-track{background:rgba(91,127,255,0.25); border-color:var(--blue-glow);}
-  .switch input:checked + .switch-track::before{transform:translateX(15px); background:var(--blue-glow); box-shadow:0 0 6px var(--blue-glow);}
-  .switch-row{display:flex; align-items:center; gap:8px;}
-  .switch-row span{font-size:11.5px; color:var(--text-dim);}
-
-  .hints-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; min-height:20px;}
-  .hint-chip{
-    font-size:12.5px; padding:9px 13px; border-radius:10px; cursor:pointer;
-    background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text-dim);
-    line-height:1.3; max-width:360px; transition:0.15s;
-  }
-  .hint-chip:hover{border-color:var(--border-bright); color:var(--text); background:var(--bg-raised);}
-  .hints-empty{font-size:12px; color:var(--text-faint); font-style:italic;}
   .clientbriefai-note{
     font-size:12px; color:var(--text-dim); background:var(--bg-panel-2);
     border:1px solid var(--border); border-radius:10px; padding:10px 13px; margin-bottom:16px;
@@ -322,7 +303,6 @@
     .composer input{min-width:0;}
     #chat{height:320px;}
     .video-call-row{flex-direction:column;}
-    .avatar-live-box, .self-view-box{aspect-ratio:4/3;}
     .brand-text{font-size:16px;}
     h2{font-size:15px;}
   }
@@ -410,18 +390,6 @@
         </div>
 
         <div id="chat"></div>
-
-        <div class="hints-header">
-          <span class="hints-label">Suggested lines</span>
-          <label class="switch-row">
-            <span>Hints</span>
-            <span class="switch">
-              <input type="checkbox" id="hintsToggle" checked onchange="renderHints()" />
-              <span class="switch-track" onclick="document.getElementById('hintsToggle').click()"></span>
-            </span>
-          </label>
-        </div>
-        <div class="hints-row" id="hintsRow"></div>
       </div>
 
       <!-- Always visible, whether or not a session is running, so mode can
@@ -817,14 +785,6 @@ window.startSession = async function(){
     if(hasOpener){
       appendMsg('assistant', currentPersona.name, session.conversation[0].content);
     }
-    // The static scenario.chips were written as rebuttals to an objection
-    // stated up front, neither direction does that anymore, the objection
-    // now surfaces live over the first turn or two instead. Start empty
-    // rather than showing a chip that answers a concern nobody's raised
-    // yet; real per-turn hints take over after the first exchange.
-    currentHints = [];
-    renderHints();
-
     document.getElementById('coachFeed').innerHTML = '';
     updateMeters(session.pressure, session.trust, session.specificity);
     addCoachEntry('neutral', 'Session started. Coaching appears after your first response.');
@@ -853,33 +813,6 @@ window.startSession = async function(){
     startBtn.textContent = startBtnLabel;
   }
 };
-
-// Static scenario.chips are only ever shown before the first exchange —
-// they're written for the opener specifically. After that, hints come from
-// the server fresh every turn (currentHints), reacting to what was just
-// actually said, since a fixed list would go stale fast.
-let currentHints = null;
-
-function renderHints(){
-  const row = document.getElementById('hintsRow');
-  const on = document.getElementById('hintsToggle').checked;
-  row.innerHTML = '';
-  if(!on) return;
-
-  const list = currentHints !== null ? currentHints : (currentScenario && currentScenario.chips) || [];
-  if(!list.length){
-    row.innerHTML = '<span class="hints-empty">No suggested lines this turn — you\'re on your own.</span>';
-    return;
-  }
-  list.forEach(chip => {
-    const el = document.createElement('div');
-    el.className = 'hint-chip';
-    el.textContent = chip;
-    el.onclick = () => sendTurn(chip); // hints send immediately
-    row.appendChild(el);
-  });
-}
-window.renderHints = renderHints;
 
 // Edge's Microsoft "Online (Natural)" voices are Edge-exclusive; Chrome,
 // Firefox, and others fall back to noticeably worse default OS voices.
@@ -1118,8 +1051,6 @@ window.sendTurn = async function(hintText){
     appendMsg('assistant', currentPersona.name, res.persona_reply);
     updateMeters(res.pressure, res.trust, res.specificity);
     addCoachEntry(res.coaching_note_kind, res.coaching_note_text);
-    currentHints = res.hints || [];
-    renderHints();
     speakPersonaLine(res.persona_reply);
   }catch(e){
     hideTypingIndicator();
