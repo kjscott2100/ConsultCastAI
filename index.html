@@ -142,12 +142,29 @@
   .center-panel{min-height:560px; display:flex; flex-direction:column;}
   .center-empty{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13.5px; padding:60px 20px; line-height:1.6;}
 
+  .video-call-row{display:flex; gap:14px; margin-bottom:14px;}
+  .video-call-row .avatar-live-box, .video-call-row .self-view-box{flex:1; min-width:0; margin-bottom:0;}
   .avatar-live-box{
-    width:100%; aspect-ratio:16/9; border-radius:14px; margin-bottom:14px;
+    width:100%; aspect-ratio:16/9; border-radius:14px;
     background:var(--bg-panel-2); border:1px solid var(--border-bright); position:relative; overflow:hidden;
     background-image: radial-gradient(circle at 50% 38%, rgba(155,92,255,0.22), transparent 62%);
   }
   .avatar-live-box video{width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;}
+  .self-view-box{
+    width:100%; aspect-ratio:16/9; border-radius:14px;
+    background:var(--bg-panel-2); border:1px solid var(--border); position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .self-view-box video{
+    width:100%; height:100%; object-fit:cover; border-radius:13px; position:absolute; inset:0;
+    transform:scaleX(-1); /* mirrored, the way every real video call shows your own camera */
+  }
+  .self-view-text{color:var(--text-faint); font-size:11.5px; text-align:center; padding:0 16px;}
+  .self-view-label{
+    position:absolute; bottom:8px; left:10px; z-index:1;
+    font-family:var(--font-mono); font-size:10px; color:var(--text-dim);
+    background:rgba(5,6,17,0.6); padding:3px 8px; border-radius:6px;
+  }
   .briefing-box{
     font-size:12.5px; color:var(--text-dim); line-height:1.5; font-style:italic;
     background:var(--bg-panel-2); border-left:2px solid var(--purple-glow);
@@ -304,7 +321,8 @@
     .composer{flex-wrap:wrap;}
     .composer input{min-width:0;}
     #chat{height:320px;}
-    .avatar-live-box{aspect-ratio:4/3;}
+    .video-call-row{flex-direction:column;}
+    .avatar-live-box, .self-view-box{aspect-ratio:4/3;}
     .brand-text{font-size:16px;}
     h2{font-size:15px;}
   }
@@ -384,9 +402,16 @@
 
         <div class="briefing-box" id="briefingBox"></div>
 
-        <div id="avatarLive" class="avatar-live-box hidden">
-          <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
-          <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+        <div id="videoCallRow" class="video-call-row hidden">
+          <div id="avatarLive" class="avatar-live-box">
+            <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+            <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+          </div>
+          <div id="selfView" class="self-view-box">
+            <video id="selfViewVideo" autoplay playsinline muted class="hidden"></video>
+            <span class="self-view-text" id="selfViewText">Camera off</span>
+            <span class="self-view-label hidden" id="selfViewLabel">You</span>
+          </div>
         </div>
 
         <div id="chat"></div>
@@ -903,8 +928,8 @@ async function startAvatar(){
       method: 'POST',
       body: JSON.stringify({ persona_id: currentPersona.id }),
     });
+    document.getElementById('videoCallRow').classList.remove('hidden');
     const box = document.getElementById('avatarLive');
-    box.classList.remove('hidden');
     let video = box.querySelector('video');
     if(!video){
       video = document.createElement('video');
@@ -915,6 +940,7 @@ async function startAvatar(){
     anamClient = createClient(res.session_token);
     await anamClient.streamToVideoElement('avatarVideo');
     anamActive = true;
+    startSelfCamera(); // purely cosmetic (see below), never blocks the avatar itself
   }catch(e){
     console.error('Avatar start failed:', e);
     alert('Could not start the live avatar (it may already be busy from a previous session), falling back to voice.');
@@ -934,7 +960,46 @@ function stopAvatar(){
   const box = document.getElementById('avatarLive');
   const video = box.querySelector('video');
   if(video) video.remove();
-  box.classList.add('hidden');
+  document.getElementById('videoCallRow').classList.add('hidden');
+  stopSelfCamera();
+}
+
+// --- Self camera: purely visual, makes avatar mode feel like a real video
+// call (two tiles, side by side, both just facing the camera). Nothing
+// analyzes this feed, it's never sent anywhere, it's a local preview only,
+// same as any video-call app shows your own camera back to you. Mirrored
+// (scaleX(-1) in CSS) for the same reason every video call app mirrors it.
+let selfCameraStream = null;
+
+async function startSelfCamera(){
+  if(selfCameraStream) return; // already running
+  const video = document.getElementById('selfViewVideo');
+  const text = document.getElementById('selfViewText');
+  const label = document.getElementById('selfViewLabel');
+  try{
+    selfCameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    video.srcObject = selfCameraStream;
+    video.classList.remove('hidden');
+    label.classList.remove('hidden');
+    text.classList.add('hidden');
+  }catch(e){
+    console.warn('Camera access unavailable, continuing with avatar-only view:', e);
+    text.textContent = 'Camera unavailable';
+  }
+}
+
+function stopSelfCamera(){
+  if(selfCameraStream){
+    selfCameraStream.getTracks().forEach(t => t.stop()); // release the camera, not just hide the tile
+    selfCameraStream = null;
+  }
+  const video = document.getElementById('selfViewVideo');
+  video.srcObject = null;
+  video.classList.add('hidden');
+  document.getElementById('selfViewLabel').classList.add('hidden');
+  const text = document.getElementById('selfViewText');
+  text.textContent = 'Camera off';
+  text.classList.remove('hidden');
 }
 
 // Prevent orphaned Anam sessions: a page reload or tab close doesn't
