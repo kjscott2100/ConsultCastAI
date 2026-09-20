@@ -46,7 +46,6 @@ class TurnResponse(BaseModel):
     specificity: int
     coaching_note_kind: str
     coaching_note_text: str
-    hints: list[str] = []
 
 
 class EndSessionResponse(BaseModel):

@@ -37,7 +37,7 @@ from models import (
     AssessmentResponse,
     AssessmentDocxRequest,
 )
-from prompts import build_system_prompt, build_debrief_prompt, build_hints_system_prompt, build_assessment_prompt, build_opener_prompt
+from prompts import build_system_prompt, build_debrief_prompt, build_assessment_prompt, build_opener_prompt
 
 app = FastAPI(title="ConsultCastAI Backend")
 
@@ -186,17 +186,6 @@ def send_turn(session_id: str, req: TurnRequest, user: auth.AuthUser = Depends(a
     session.specificity = result.state.specificity
     store.save(session)
 
-    # Suggested lines are regenerated every turn from what was just actually
-    # said, not the same 3 static lines the whole conversation. A failure
-    # here (get_dynamic_hints already catches its own exceptions) just means
-    # no hints this turn, not a broken response.
-    transcript_lines = [
-        f"{'CONSULTANT' if t.role == 'user' else session.persona_name.upper()}: {t.content}"
-        for t in session.conversation
-    ]
-    hints_prompt = build_hints_system_prompt(persona, scenario)
-    hints = claude_client.get_dynamic_hints(hints_prompt, "\n".join(transcript_lines))
-
     return TurnResponse(
         persona_reply=reply,
         pressure=result.state.pressure,
@@ -204,7 +193,6 @@ def send_turn(session_id: str, req: TurnRequest, user: auth.AuthUser = Depends(a
         specificity=result.state.specificity,
         coaching_note_kind=result.note_kind,
         coaching_note_text=result.note_text,
-        hints=hints,
     )
 
 

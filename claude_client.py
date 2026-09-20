@@ -88,44 +88,6 @@ def get_debrief(debrief_prompt: str) -> str:
     )
 
 
-def get_dynamic_hints(hints_system_prompt: str, transcript_text: str) -> list[str]:
-    """Suggested next lines for the consultant, regenerated after every turn
-    based on what the persona just actually said. Static hints go stale the
-    moment the conversation moves past the opening line; this keeps them
-    relevant turn to turn instead.
-
-    Uses a dedicated coaching system prompt, NOT the persona's in-character
-    prompt — that prompt explicitly forbids breaking character, which is
-    exactly what's needed here (analyzing the exchange from the outside).
-    transcript_text is a plain formatted string, not the raw role-based chat
-    history, so Claude isn't confused into thinking it "said" Carla's lines
-    under a different persona.
-
-    Returns an empty list on any failure (bad JSON, empty response, etc.) —
-    callers should treat that as "no hints available this turn" rather than
-    retrying or falling back to stale content.
-    """
-    user_message = (
-        f"Conversation so far:\n{transcript_text}\n\n"
-        "Suggest exactly 3 short lines the consultant could say next to keep "
-        "making real progress, specific numbers, sharp discovery questions, "
-        "or direct answers to whatever objection was just raised. Not "
-        "generic sales talk.\n\n"
-        "Return ONLY a JSON array of 3 strings, nothing else, no markdown "
-        "fences, no preamble. Example: "
-        '["line one", "line two", "line three"]'
-    )
-    try:
-        raw = _call(hints_system_prompt, [{"role": "user", "content": user_message}], max_tokens=250)
-        raw = raw.strip()
-        if raw.startswith("```"):
-            raw = raw.strip("`").removeprefix("json").strip()
-        hints = json.loads(raw)
-        if isinstance(hints, list) and all(isinstance(h, str) for h in hints):
-            return hints[:3]
-    except Exception as exc:
-        print(f"[consultcastai] dynamic hints call failed, showing none this turn: {type(exc).__name__}: {exc}")
-    return []
 
 
 def get_assessment(assessment_prompt: str) -> str:

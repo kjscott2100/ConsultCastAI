@@ -3,7 +3,6 @@ Prompt builders for ConsultCastAI.
 
 build_system_prompt drives the in-character skeptical-buyer persona.
 build_debrief_prompt drives the post-session coaching writeup.
-build_hints_system_prompt drives the live per-turn suggested-lines feature.
 build_assessment_prompt drives the client-facing AI Opportunity Assessment,
 a real deliverable, not a coaching artifact — held to a stricter honesty
 and no-buzzwords bar than the debrief since a client actually reads this.
@@ -139,23 +138,6 @@ Rules:
 - This needs to be something a consultant can copy, lightly edit, and
   actually send. Professional, confident, grounded, not salesy.
 """
-
-
-def build_hints_system_prompt(persona: Persona, scenario: Scenario) -> str:
-    """Deliberately separate from build_system_prompt. That prompt tells
-    Claude to never break character; this one needs the opposite, an
-    outside coaching view of the exchange, not Carla's (or anyone's) voice."""
-    return f"""You are a sharp, no-nonsense sales coach watching a live practice
-call between an AI consultant and {persona.name}, {persona.role}, who is
-currently objecting to {scenario.product}.
-
-You are NOT {persona.name}. Do not write in her/his voice. You are an
-outside coach suggesting what the consultant could say next.
-
-Suggestions should be specific to what was actually just said in the
-transcript, not generic sales advice. Prefer concrete numbers, sharp
-discovery questions, or direct answers to the specific objection just
-raised over anything that sounds like a canned pitch line."""
 
 
 def _call_context(scenario: Scenario, call_direction: str) -> str:
