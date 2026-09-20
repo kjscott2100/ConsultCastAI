@@ -516,11 +516,10 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@anam-ai/js-sdk@4/+esm";
 
-// TODO: swap this for the real page once ClientBriefAI is live on the site,
-// e.g. "https://www.ai-curator.ai/clientbriefai". This is the ONLY place
-// that needs to change — every mention of ClientBriefAI in the app reads
-// from here rather than hardcoding the URL in multiple spots.
-const CLIENTBRIEFAI_URL = "https://www.ai-curator.ai/clientbriefai";
+// ClientBriefAI is live at its own subdomain. This is the ONLY place that
+// needs to change if that ever moves — every mention of ClientBriefAI in
+// the app reads from here rather than hardcoding the URL in multiple spots.
+const CLIENTBRIEFAI_URL = "https://clientbriefai.ai-curator.ai";
 document.getElementById('clientBriefAiLink').href = CLIENTBRIEFAI_URL;
 
 let API_BASE = localStorage.getItem('consultcastai_base') || 'http://localhost:8081';
