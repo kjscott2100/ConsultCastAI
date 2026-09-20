@@ -71,6 +71,15 @@ def get_persona_reply(system_prompt: str, history: list[dict]) -> str:
     return _call(system_prompt, history, max_tokens=300)
 
 
+def get_opener(opener_prompt: str) -> str:
+    """Generates the actual first line of a session live, so the call
+    genuinely starts at the beginning instead of a fixed pre-written line.
+    No conversation history yet, opener_prompt (from
+    prompts.build_opener_prompt) carries the full persona/situation context
+    as the system prompt, paired with a minimal trigger message."""
+    return _call(opener_prompt, [{"role": "user", "content": "Begin the call."}], max_tokens=150)
+
+
 def get_debrief(debrief_prompt: str) -> str:
     return _call(
         "You are a precise, direct sales coach. Follow the requested format exactly.",

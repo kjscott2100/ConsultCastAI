@@ -17,6 +17,7 @@ class SessionRecord(BaseModel):
     scenario_title: str
     scenario_product: str
     voice_tier: str = "standard"
+    call_direction: str = "outbound"  # "inbound" (they called you) | "outbound" (you called them)
     active_scenario_id: str
     conversation: list[ConversationTurn] = Field(default_factory=list)
     pressure: int = 75
@@ -31,6 +32,7 @@ class StartSessionRequest(BaseModel):
     persona_id: str
     scenario_id: str
     voice_tier: str = "standard"
+    call_direction: str = "outbound"  # "inbound" | "outbound"
 
 
 class TurnRequest(BaseModel):

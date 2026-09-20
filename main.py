@@ -37,7 +37,7 @@ from models import (
     AssessmentResponse,
     AssessmentDocxRequest,
 )
-from prompts import build_system_prompt, build_debrief_prompt, build_hints_system_prompt, build_assessment_prompt
+from prompts import build_system_prompt, build_debrief_prompt, build_hints_system_prompt, build_assessment_prompt, build_opener_prompt
 
 app = FastAPI(title="ConsultCastAI Backend")
 
@@ -114,6 +114,27 @@ def start_session(req: StartSessionRequest, user: auth.AuthUser = Depends(auth.v
     if not persona or not scenario:
         raise HTTPException(404, "Persona or scenario not found (or scenario deactivated)")
 
+    call_direction = req.call_direction if req.call_direction in ("inbound", "outbound") else "outbound"
+
+    # Outbound: the consultant placed the call, so they speak first, same as
+    # a real one. Conversation starts empty; the persona's first reaction
+    # comes through the normal /turn flow once the consultant actually says
+    # something, not a pre-generated line.
+    #
+    # Inbound: the persona placed the call, so they open with a brief
+    # greeting (see build_opener_prompt) generated live. scenario.opener is
+    # also the safety-net fallback if that Claude call itself fails, so a
+    # session can still start.
+    conversation: list[ConversationTurn] = []
+    if call_direction == "inbound":
+        opener_prompt = build_opener_prompt(persona, scenario)
+        try:
+            opener = claude_client.get_opener(opener_prompt)
+        except Exception as exc:
+            print(f"[consultcastai] dynamic opener generation failed, falling back to static opener: {type(exc).__name__}: {exc}")
+            opener = scenario.opener
+        conversation = [ConversationTurn(role="assistant", content=opener)]
+
     session = SessionRecord(
         rep_id=user.rep_id,
         persona_name=persona.name,
@@ -121,8 +142,9 @@ def start_session(req: StartSessionRequest, user: auth.AuthUser = Depends(auth.v
         scenario_title=scenario.title,
         scenario_product=scenario.product,
         voice_tier=req.voice_tier,
+        call_direction=call_direction,
         active_scenario_id=scenario.id,
-        conversation=[ConversationTurn(role="assistant", content=scenario.opener)],
+        conversation=conversation,
     )
     store.save(session)
     _coaching_state[session.id] = coaching.CoachingState()
@@ -149,7 +171,7 @@ def send_turn(session_id: str, req: TurnRequest, user: auth.AuthUser = Depends(a
     _coaching_state[session_id] = result.state
 
     session.conversation.append(ConversationTurn(role="user", content=req.message))
-    system_prompt = build_system_prompt(persona, scenario)
+    system_prompt = build_system_prompt(persona, scenario, session.call_direction)
     history = [{"role": t.role, "content": t.content} for t in session.conversation]
     try:
         reply = claude_client.get_persona_reply(system_prompt, history)

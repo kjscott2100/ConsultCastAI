@@ -346,6 +346,13 @@
         <select id="personaSelect" onchange="onPersonaChange()"><option>Loading…</option></select>
       </div>
       <div class="field">
+        <span class="field-label">Call direction</span>
+        <select id="callDirectionSelect">
+          <option value="outbound" selected>Outbound — you called them</option>
+          <option value="inbound">Inbound — they called you</option>
+        </select>
+      </div>
+      <div class="field">
         <span class="field-label">What to work on</span>
         <select id="scenarioSelect" onchange="onScenarioChange()" disabled><option>Pick a persona first</option></select>
       </div>
@@ -364,6 +371,7 @@
 
       <button class="btn block" id="startBtn" disabled onclick="startSession()" style="margin-top:16px;">Start practice session</button>
       <button class="btn ghost block hidden" id="endBtn" onclick="endSession()" style="margin-top:8px;">End session &amp; get debrief</button>
+      <button class="btn ghost block hidden" id="restartBtn" onclick="restartSession()" style="margin-top:8px;">Restart (no debrief)</button>
     </div>
 
     <!-- CENTER: conversation -->
@@ -748,15 +756,20 @@ function updateStartBtn(){
 }
 
 window.startSession = async function(){
+  const startBtn = document.getElementById('startBtn');
+  const startBtnLabel = startBtn.textContent;
+  startBtn.disabled = true;
+  startBtn.textContent = 'Starting session…'; // the opener is now generated live, not instant
   try{
     const personaId = document.getElementById('personaSelect').value;
     const scenarioId = document.getElementById('scenarioSelect').value;
+    const callDirection = document.getElementById('callDirectionSelect').value;
     currentPersona = personas.find(p => p.id === personaId);
     currentScenario = currentPersona.scenarios.find(s => s.id === scenarioId);
 
     const session = await api('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ persona_id: personaId, scenario_id: scenarioId, voice_tier: 'standard' }),
+      body: JSON.stringify({ persona_id: personaId, scenario_id: scenarioId, voice_tier: 'standard', call_direction: callDirection }),
     });
     sessionId = session.id;
     turnCount = 0;
@@ -765,8 +778,10 @@ window.startSession = async function(){
     document.getElementById('centerActive').classList.remove('hidden');
     document.getElementById('startBtn').classList.add('hidden');
     document.getElementById('endBtn').classList.remove('hidden');
+    document.getElementById('restartBtn').classList.remove('hidden');
     document.getElementById('personaSelect').disabled = true;
     document.getElementById('scenarioSelect').disabled = true;
+    document.getElementById('callDirectionSelect').disabled = true;
 
     document.getElementById('personaDetails').classList.remove('hidden');
     document.getElementById('personaPhotoText').textContent = currentPersona.name;
@@ -779,8 +794,19 @@ window.startSession = async function(){
     document.getElementById('sessionEyebrow').textContent = currentScenario.title;
     document.getElementById('briefingBox').textContent = currentScenario.briefing || '';
     document.getElementById('chat').innerHTML = '';
-    appendMsg('assistant', currentPersona.name, session.conversation[0].content);
-    currentHints = null; // fall back to the static opener chips for this fresh session
+    // Outbound sessions start with an empty conversation on purpose (see
+    // main.py's start_session()): the consultant placed the call, so they
+    // speak first, same as a real one. Inbound still gets one opening line.
+    const hasOpener = session.conversation.length > 0;
+    if(hasOpener){
+      appendMsg('assistant', currentPersona.name, session.conversation[0].content);
+    }
+    // The static scenario.chips were written as rebuttals to an objection
+    // stated up front, neither direction does that anymore, the objection
+    // now surfaces live over the first turn or two instead. Start empty
+    // rather than showing a chip that answers a concern nobody's raised
+    // yet; real per-turn hints take over after the first exchange.
+    currentHints = [];
     renderHints();
 
     document.getElementById('coachFeed').innerHTML = '';
@@ -788,6 +814,9 @@ window.startSession = async function(){
     addCoachEntry('neutral', 'Session started. Coaching appears after your first response.');
     startTimer();
     setComposerEnabled(true);
+    document.getElementById('msgInput').placeholder = hasOpener
+      ? 'Type your response, or use the mic...'
+      : 'You called them — type your opening line, or use the mic...';
 
     // Respect whatever output mode was already picked before Start was
     // pressed (defaults to Voice via the <select>'s own "selected" option
@@ -796,10 +825,16 @@ window.startSession = async function(){
 
     // Speak the opening line too, not just the reply to the first turn —
     // 1.5s pause gives it a natural beat and, in avatar mode, a moment for
-    // the stream to actually be ready before it tries to talk.
-    speakPersonaLine(session.conversation[0].content, 1500);
+    // the stream to actually be ready before it tries to talk. Outbound has
+    // nothing to speak yet, the consultant goes first.
+    if(hasOpener){
+      speakPersonaLine(session.conversation[0].content, 1500);
+    }
   }catch(e){
     alert('Could not start session: ' + e.message);
+  }finally{
+    startBtn.disabled = false;
+    startBtn.textContent = startBtnLabel;
   }
 };
 
@@ -1095,6 +1130,7 @@ window.endSession = async function(){
     document.getElementById('centerActive').classList.add('hidden');
     document.getElementById('centerEmpty').classList.remove('hidden');
     document.getElementById('endBtn').classList.add('hidden'); // session is over, nothing left to end
+    document.getElementById('restartBtn').classList.add('hidden');
     document.getElementById('debriefScreen').classList.remove('hidden');
     document.getElementById('debriefText').textContent = res.debrief;
     document.getElementById('debriefScreen').scrollIntoView({ behavior: 'smooth' });
@@ -1105,6 +1141,19 @@ window.endSession = async function(){
     btn.disabled = false;
     btn.textContent = originalLabel;
   }
+};
+
+// Separate from endSession(): abandons the current practice session
+// without calling /end or generating a debrief, for when you just want to
+// bail and start over rather than get a review of what didn't work.
+window.restartSession = function(){
+  if(!sessionId) return;
+  if(!confirm('Restart without generating a debrief? This abandons the current practice session.')) return;
+  stopTimer();
+  stopAvatar();
+  document.getElementById('centerActive').classList.add('hidden');
+  document.getElementById('centerEmpty').classList.remove('hidden');
+  resetAll();
 };
 
 window.resetAll = function(){
@@ -1119,6 +1168,8 @@ window.resetAll = function(){
   stopReadAloud();
   document.getElementById('personaSelect').disabled = false;
   document.getElementById('personaSelect').value = '';
+  document.getElementById('callDirectionSelect').disabled = false;
+  document.getElementById('callDirectionSelect').value = 'outbound';
   document.getElementById('scenarioSelect').innerHTML = '<option>Pick a persona first</option>';
   document.getElementById('scenarioSelect').disabled = true;
   document.getElementById('personaDetails').classList.add('hidden');
@@ -1126,6 +1177,7 @@ window.resetAll = function(){
   setPersonaPhoto(null);
   document.getElementById('startBtn').classList.remove('hidden');
   document.getElementById('endBtn').classList.add('hidden');
+  document.getElementById('restartBtn').classList.add('hidden');
   document.getElementById('modeSelect').value = 'voice';
   outputMode = 'voice';
   document.getElementById('browserNote').classList.add('hidden');

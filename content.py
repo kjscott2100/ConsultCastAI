@@ -42,6 +42,11 @@ class Scenario:
     group: str  # objection category, see GROUPS below
     title: str
     product: str
+    # No longer shown verbatim: prompts.build_opener_prompt hands this to
+    # Claude as the substance of the objection to raise, rephrased live to
+    # fit whichever call_direction the session was started with. Kept as
+    # plain text (not per-direction variants) since it's direction-neutral,
+    # a client-side objection can plausibly open either kind of call.
     opener: str
     chips: list[str] = field(default_factory=list)
     briefing: str = ""  # one or two sentences of scene-setting shown before the opener

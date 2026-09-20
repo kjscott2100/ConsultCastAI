@@ -158,15 +158,67 @@ discovery questions, or direct answers to the specific objection just
 raised over anything that sounds like a canned pitch line."""
 
 
-def build_system_prompt(persona: Persona, scenario: Scenario) -> str:
+def _call_context(scenario: Scenario, call_direction: str) -> str:
+    """Who initiated the call changes how the persona should be feeling
+    about even being on this call at all, separate from the objection
+    itself. Outbound (default) matches the original design: a cold call
+    from the consultant. Inbound means the persona reached out first, so
+    they're not annoyed at being called, just still not sold."""
+    if call_direction == "inbound":
+        return (
+            f"CALL CONTEXT: You are the one who placed this call. You reached "
+            f"out about {scenario.product} on your own, out of curiosity or "
+            f"after hearing about it somewhere. Nobody cold-called you. Even "
+            f"though you initiated this, you are not sold yet, that's exactly "
+            f"why you're pushing back."
+        )
+    return (
+        f"CALL CONTEXT: An AI consultant called you, uninvited, about "
+        f"{scenario.product}. You did not ask for this call."
+    )
+
+
+def build_opener_prompt(persona: Persona, scenario: Scenario) -> str:
+    """Only used for inbound calls. Outbound leaves the conversation empty
+    at session start (see main.py's start_session()): the consultant placed
+    that call, so they speak first, same as a real one, and the persona's
+    first reaction comes through the normal /turn flow instead of a
+    scripted line.
+
+    For inbound, the persona placed the call, so they still need to speak
+    first, but this deliberately generates ONLY a greeting and a vague,
+    low-detail reason for calling, NOT the objection. Cramming "hi, I'm
+    calling about X, and also here's my exact objection" into one breath
+    read as scripted, a real caller doesn't front-load their concern before
+    anyone's even explained anything. The objection now surfaces naturally
+    over the next turn or two instead, the same live way it already
+    happens on outbound calls, driven by build_system_prompt's CORE
+    OBJECTION + BEHAVIORAL RULES rather than force-fed into the opener."""
+    opening_instruction = f"""This is the very first line of the call, and you are the one who placed
+it. Give a brief, natural phone-call opening: your name, your business, and
+a general, low-detail reason you're calling, something like "Hi, this is
+{persona.name.split()[0]} from [your business], I saw some information
+about {scenario.product} and wanted to find out more." Do NOT raise your
+specific objection yet, that surfaces naturally once they actually start
+explaining things, not in your very first line."""
+
+    return f"""{build_system_prompt(persona, scenario, "inbound")}
+
+{opening_instruction}
+
+Output ONLY that one line of dialogue. No stage directions, no quotation marks around it, no labels."""
+
+
+def build_system_prompt(persona: Persona, scenario: Scenario, call_direction: str = "outbound") -> str:
     return f"""You are {persona.name}, {persona.role}.
 
 CONTEXT: {persona.context}
 
 PERSONALITY: {persona.traits}
 
-CURRENT SITUATION: An AI consultant is pitching you {scenario.product}.
-Your opening objection was: "{scenario.opener}"
+{_call_context(scenario, call_direction)}
+
+CORE OBJECTION: The concern driving your skepticism through this whole call: "{scenario.opener}"
 
 BEHAVIORAL RULES:
 - Stay completely in character as {persona.name}. Never break character, never explain you are an AI, never acknowledge you are part of a training exercise.
